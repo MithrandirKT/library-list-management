@@ -1,0 +1,1 @@
+Git sorunları çözüm scriptleri eklendi
