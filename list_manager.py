@@ -1,0 +1,156 @@
+"""
+Liste Yönetimi Modülü
+Kitap listesi CRUD işlemleri
+"""
+
+from typing import List, Dict, Optional
+from tkinter import messagebox
+
+
+class ListManager:
+    """Kitap listesi yönetimi için sınıf"""
+    
+    def __init__(self, kitap_listesi: List[Dict] = None):
+        """
+        Args:
+            kitap_listesi: Başlangıç kitap listesi
+        """
+        self.kitap_listesi = kitap_listesi or []
+    
+    def ekle(self, kitap: Dict, tekrar_kontrol: bool = True) -> tuple[bool, Optional[str]]:
+        """
+        Kitap ekler
+        
+        Args:
+            kitap: Eklenecek kitap dict'i
+            tekrar_kontrol: Aynı kitap kontrolü yapılsın mı
+            
+        Returns:
+            (Başarılı mı, Hata mesajı)
+        """
+        kitap_adi = kitap.get("Kitap Adı", "").strip()
+        
+        if not kitap_adi:
+            return False, "Kitap Adı boş olamaz!"
+        
+        # Tekrar kontrolü
+        if tekrar_kontrol:
+            mevcut_isimler = [k.get("Kitap Adı", "").lower() for k in self.kitap_listesi]
+            if kitap_adi.lower() in mevcut_isimler:
+                return False, f"'{kitap_adi}' adlı kitap zaten listede var!"
+        
+        self.kitap_listesi.append(kitap)
+        return True, None
+    
+    def sil(self, index: int) -> tuple[bool, Optional[Dict]]:
+        """
+        Kitap siler
+        
+        Args:
+            index: Silinecek kitabın indeksi
+            
+        Returns:
+            (Başarılı mı, Silinen kitap)
+        """
+        if 0 <= index < len(self.kitap_listesi):
+            silinen = self.kitap_listesi.pop(index)
+            return True, silinen
+        return False, None
+    
+    def getir(self, index: int) -> Optional[Dict]:
+        """
+        Kitap getirir
+        
+        Args:
+            index: Kitabın indeksi
+            
+        Returns:
+            Kitap dict'i veya None
+        """
+        if 0 <= index < len(self.kitap_listesi):
+            return self.kitap_listesi[index]
+        return None
+    
+    def tumunu_getir(self) -> List[Dict]:
+        """
+        Tüm kitap listesini getirir
+        
+        Returns:
+            Kitap listesi
+        """
+        return self.kitap_listesi.copy()
+    
+    def sayi(self) -> int:
+        """
+        Kitap sayısını döndürür
+        
+        Returns:
+            Kitap sayısı
+        """
+        return len(self.kitap_listesi)
+    
+    def temizle(self):
+        """Listeyi temizler"""
+        self.kitap_listesi = []
+    
+    def toplu_ekle(self, kitaplar: List[Dict], tekrar_kontrol: bool = True) -> Dict[str, List]:
+        """
+        Toplu kitap ekler
+        
+        Args:
+            kitaplar: Eklenecek kitap listesi
+            tekrar_kontrol: Tekrar kontrolü yapılsın mı
+            
+        Returns:
+            {
+                'eklenen': [eklenen kitaplar],
+                'atlanan': [atlanan kitaplar]
+            }
+        """
+        mevcut_isimler = [k.get("Kitap Adı", "").lower() for k in self.kitap_listesi]
+        eklenecekler = []
+        atlananlar = []
+        
+        for kitap in kitaplar:
+            kitap_adi = kitap.get("Kitap Adı", "").strip()
+            yazar = kitap.get("Yazar", "").strip()
+            
+            # Zorunlu alan kontrolü
+            if not kitap_adi or not yazar:
+                continue
+            
+            if tekrar_kontrol and kitap_adi.lower() in mevcut_isimler:
+                atlananlar.append(kitap_adi)
+            else:
+                eklenecekler.append(kitap)
+                mevcut_isimler.append(kitap_adi.lower())
+        
+        # Ekle
+        self.kitap_listesi.extend(eklenecekler)
+        
+        return {
+            'eklenen': eklenecekler,
+            'atlanan': atlananlar
+        }
+    
+    def ara(self, arama_terimi: str) -> List[Dict]:
+        """
+        Kitap arar
+        
+        Args:
+            arama_terimi: Aranacak terim
+            
+        Returns:
+            Bulunan kitaplar listesi
+        """
+        arama_lower = arama_terimi.lower()
+        sonuclar = []
+        
+        for kitap in self.kitap_listesi:
+            kitap_adi = kitap.get("Kitap Adı", "").lower()
+            yazar = kitap.get("Yazar", "").lower()
+            
+            if arama_lower in kitap_adi or arama_lower in yazar:
+                sonuclar.append(kitap)
+        
+        return sonuclar

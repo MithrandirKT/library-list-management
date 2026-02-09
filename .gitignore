@@ -1,0 +1,48 @@
+# API Keys (Hassas bilgiler - ASLA commit etme!)
+groq_api_key.txt
+huggingface_api_key.txt
+*.key
+*.token
+
+# Excel dosyaları (Kullanıcı verileri)
+*.xlsx
+*.xls
+Kutuphanem.xlsx
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# İkon dosyaları (isteğe bağlı - eğer eklemek isterseniz kaldırabilirsiniz)
+# kitap_ikon.ico
+# kitap_ikon.png
+
+# Geçici dosyalar
+*.tmp
+*.log
+*.bak
+
+# EXE dosyaları (eğer oluşturulduysa)
+*.exe
+dist/
+build/
