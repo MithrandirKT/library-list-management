@@ -1,6 +1,6 @@
 """
-Excel İşlemleri Modülü
-Excel dosyası okuma, yazma ve format güncelleme işlemleri
+Excel Islemleri Modulu
+Excel dosyasi okuma, yazma ve format guncelleme islemleri
 """
 
 import pandas as pd
@@ -12,7 +12,7 @@ from openpyxl.styles import numbers
 from field_registry import standard_columns
 
 class ExcelHandler:
-    """Excel dosyası işlemleri için sınıf"""
+    """Excel dosyasi islemleri icin sinif"""
     
     # ⚠️ KRİTİK: Standart sütun sırası - ASLA DEĞİŞTİRME!
     # Bu sıra Excel dosyası formatını belirler. Değiştirirsen:
@@ -27,7 +27,7 @@ class ExcelHandler:
     def __init__(self, excel_dosyasi: str = "Kutuphanem.xlsx"):
         """
         Args:
-            excel_dosyasi: Excel dosyası yolu
+            excel_dosyasi: Excel dosyasi yolu
             
         ⚠️ DİKKAT: Varsayılan dosya adı "Kutuphanem.xlsx" - Değiştirirsen:
         - Mevcut Excel dosyaları bulunamaz
@@ -38,7 +38,7 @@ class ExcelHandler:
     
     def yukle(self) -> List[Dict]:
         """
-        Excel dosyasından kitap listesini yükler ve format günceller
+        Excel dosyasindan kitap listesini yukler ve format gunceller
         
         Returns:
             Kitap listesi (dict listesi)
