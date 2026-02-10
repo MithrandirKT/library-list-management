@@ -137,6 +137,7 @@ def _is_classic_book(kitap_adi: str, yazar: str) -> bool:
         "moby dick", "the scarlet letter", "pride and prejudice", "jane eyre",
         "wuthering heights", "great expectations", "david copperfield", "oliver twist",
         "the count of monte cristo", "the three musketeers", "madame bovary",
+        "robinson crusoe",  # Daniel Defoe
     ]
     
     kitap_lower = kitap_adi.lower()
@@ -173,6 +174,25 @@ def gate_publication_year(value: str, context: Dict[str, str]) -> Tuple[bool, Op
                     return False, "gbooks_edition_date_recent"
                 # For 1950-2000, still suspicious but allow with lower confidence
                 # (This will be handled by the caller reducing confidence)
+        except Exception:
+            pass
+    
+    # Open Library: first_publish_year sometimes contains wrong data (modern edition dates instead of original)
+    if source == "openlibrary":
+        try:
+            year = int(str(value).strip())
+            # Get author from context if available
+            yazar = context.get("author", "")
+            # If it's a classic book and the year is after 2000, it's likely wrong data
+            # Open Library sometimes has incorrect first_publish_year for classic books
+            if _is_classic_book(localized_title, yazar) and year > 2000:
+                return False, "openlibrary_wrong_first_publish_year"
+            # Also check if year is suspiciously recent for any book (after 2010)
+            # This catches cases where Open Library has wrong data
+            if year > 2010:
+                # For very recent years, be suspicious unless it's clearly a modern book
+                # We'll allow it but with lower confidence (handled by caller)
+                pass
         except Exception:
             pass
 

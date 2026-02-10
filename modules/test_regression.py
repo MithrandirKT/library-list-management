@@ -87,20 +87,20 @@ class TestCommonProblems(unittest.TestCase):
             "Yazar": "Test Author",
             "Orijinal Adı": "",  # Missing
             "Tür": "Roman",  # Found
-            "Çıkış Yılı": "",  # Missing
+            "İlk Yayınlanma Tarihi": "",  # Missing
         })
         
         # Status should reflect partial data
         set_row_status(
             mevcut,
             status="PARTIAL",
-            missing_fields=["Orijinal Adı", "Çıkış Yılı"],
+            missing_fields=["Orijinal Adı", "İlk Yayınlanma Tarihi"],
             best_source="test"
         )
         
         self.assertEqual(mevcut['status'], 'PARTIAL')
         self.assertIn('Orijinal Adı', mevcut['missing_fields'])
-        self.assertIn('Çıkış Yılı', mevcut['missing_fields'])
+        self.assertIn('İlk Yayınlanma Tarihi', mevcut['missing_fields'])
 
     def test_complete_data_scenario(self):
         """Test scenario where all fields are found"""
@@ -109,7 +109,7 @@ class TestCommonProblems(unittest.TestCase):
             "Yazar": "Test Author",
             "Orijinal Adı": "Test Original",
             "Tür": "Roman",
-            "Çıkış Yılı": "2020",
+            "İlk Yayınlanma Tarihi": "2020",
         })
         
         set_row_status(
@@ -240,7 +240,7 @@ class TestFieldPolicyIntegration(unittest.TestCase):
             "Orijinal Adı",
             "Tür",
             "Ülke/Edebi Gelenek",
-            "Çıkış Yılı",
+            "İlk Yayınlanma Tarihi",
             "Anlatı Yılı",
             "Konusu"
         ]
@@ -255,8 +255,8 @@ class TestFieldPolicyIntegration(unittest.TestCase):
         
         rules = build_rules()
         
-        # Check Çıkış Yılı source priority (should be: openlibrary -> wikidata -> enwiki -> gbooks -> trwiki -> AI)
-        cikis_yili_rule = rules.get("Çıkış Yılı")
+        # Check İlk Yayınlanma Tarihi source priority (should be: openlibrary -> wikidata -> enwiki -> gbooks -> trwiki -> AI)
+        cikis_yili_rule = rules.get("İlk Yayınlanma Tarihi")
         self.assertIsNotNone(cikis_yili_rule)
         
         # Open Library should be first

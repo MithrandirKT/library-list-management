@@ -20,43 +20,52 @@ class FieldRule:
 
 
 def build_rules() -> Dict[str, FieldRule]:
+    """
+    Field policy rules - SADECE GPT-OSS-20B (groq) kullanılıyor.
+    Diğer tüm kaynaklar (Wikipedia, Google Books, Open Library, Wikidata, Hugging Face, Together AI) devre dışı.
+    """
     return {
-        "Çıkış Yılı": FieldRule(
-            name="Çıkış Yılı",
-            # First-publication bias: structured sources first, TR wiki late due translation-edition risk.
-            sources=["openlibrary", "wikidata", "enwiki", "gbooks", "trwiki", "groq", "hf", "together"],
-            gate=gate_publication_year,
-            default_conf=0.7,
+        "İlk Yayınlanma Tarihi": FieldRule(
+            name="İlk Yayınlanma Tarihi",
+            # ⚠️ SADECE GPT-OSS-20B kullanılıyor - diğer kaynaklar devre dışı
+            sources=["groq"],
+            gate=None,  # Quality gate'ler devre dışı (sadece AI kullanılıyor)
+            default_conf=0.8,  # AI'ya daha yüksek güven
         ),
         "Orijinal Adı": FieldRule(
             name="Orijinal Adı",
-            sources=["wikidata", "enwiki", "groq", "hf", "together"],
-            gate=gate_original_title,
-            default_conf=0.7,
+            # ⚠️ SADECE GPT-OSS-20B kullanılıyor
+            sources=["groq"],
+            gate=None,
+            default_conf=0.8,
         ),
         "Tür": FieldRule(
             name="Tür",
-            sources=["openlibrary", "enwiki", "trwiki", "gbooks", "groq", "hf", "together"],
+            # ⚠️ SADECE GPT-OSS-20B kullanılıyor
+            sources=["groq"],
             gate=None,
-            default_conf=0.6,
+            default_conf=0.8,
         ),
         "Ülke/Edebi Gelenek": FieldRule(
             name="Ülke/Edebi Gelenek",
-            sources=["wikidata", "enwiki", "trwiki", "gbooks", "groq", "hf", "together"],
+            # ⚠️ SADECE GPT-OSS-20B kullanılıyor
+            sources=["groq"],
             gate=None,
-            default_conf=0.5,
+            default_conf=0.8,
         ),
         "Anlatı Yılı": FieldRule(
             name="Anlatı Yılı",
-            sources=["enwiki", "trwiki", "groq", "hf", "together"],
+            # ⚠️ SADECE GPT-OSS-20B kullanılıyor
+            sources=["groq"],
             gate=None,
-            default_conf=0.4,
+            default_conf=0.8,
         ),
         "Konusu": FieldRule(
             name="Konusu",
-            sources=["enwiki", "trwiki", "openlibrary", "groq", "hf", "together"],
+            # ⚠️ SADECE GPT-OSS-20B kullanılıyor
+            sources=["groq"],
             gate=None,
-            default_conf=0.5,
+            default_conf=0.8,
         ),
     }
 

@@ -6,16 +6,16 @@ Centralizes column names to keep Excel format stable.
 from typing import Dict, List
 
 # Base data columns (order must remain stable)
+# Sadece temel veri kolonları - meta ve provenance kolonları kaldırıldı
 BASE_COLUMNS: List[str] = [
     "Kitap Adı",
     "Yazar",
     "Orijinal Adı",
     "Tür",
     "Ülke/Edebi Gelenek",
-    "Çıkış Yılı",
+    "İlk Yayınlanma Tarihi",
     "Anlatı Yılı",
     "Konusu",
-    "Not",
 ]
 
 # Fields that will have src_/conf_ provenance columns
@@ -23,7 +23,7 @@ PROVENANCE_FIELDS: Dict[str, str] = {
     "Orijinal Adı": "orijinal_adi",
     "Tür": "tur",
     "Ülke/Edebi Gelenek": "ulke",
-    "Çıkış Yılı": "cikis_yili",
+    "İlk Yayınlanma Tarihi": "cikis_yili",
     "Anlatı Yılı": "anlati_yili",
     "Konusu": "konusu",
 }
@@ -51,10 +51,10 @@ def build_provenance_columns() -> List[str]:
 
 def standard_columns() -> List[str]:
     """
-    Returns the full Excel schema in stable order:
-    base columns followed by row-level metadata and provenance columns.
+    Returns the Excel schema in stable order.
+    Sadece temel veri kolonları - meta ve provenance kolonları kaldırıldı.
     """
-    return BASE_COLUMNS + ROW_META_COLUMNS + build_provenance_columns()
+    return BASE_COLUMNS
 
 
 def ensure_row_schema(row: Dict[str, str]) -> Dict[str, str]:

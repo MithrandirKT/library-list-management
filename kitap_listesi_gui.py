@@ -32,7 +32,8 @@ class KitapListesiGUI:
         # Modüller
         # Dosya path'lerini data/ klasörüne göre ayarla
         base_dir = os.path.dirname(__file__)
-        self.excel_handler = ExcelHandler(os.path.join(base_dir, "data", "Kutuphanem.xlsx"))
+        # Excel dosyası masaüstünde oluşturulacak
+        self.excel_handler = ExcelHandler()
         self.api_key_manager = APIKeyManager(os.path.join(base_dir, "data", "groq_api_key.txt"))
         self.list_manager = ListManager()
         self.bilgi_cekici = KitapBilgisiCekici()
@@ -67,7 +68,6 @@ class KitapListesiGUI:
             'bilgileri_otomatik_doldur': self.bilgileri_otomatik_doldur,
             'listeye_ekle': self.listeye_ekle,
             'formu_temizle': self.formu_temizle,
-            'kitap_sil': self.kitap_sil,
             'toplu_sil': self.toplu_sil,
             'tumunu_kaldir': self.tumunu_kaldir,
             'excel_olustur': self.excel_olustur,
@@ -142,7 +142,7 @@ class KitapListesiGUI:
                 "Orijinal Adı": form_degerler.get("orijinal_adi", ""),
                 "Tür": form_degerler.get("tur", ""),
                 "Ülke/Edebi Gelenek": form_degerler.get("ulke", ""),
-                "Çıkış Yılı": form_degerler.get("cikis_yili", ""),
+                "İlk Yayınlanma Tarihi": form_degerler.get("cikis_yili", ""),
                 "Anlatı Yılı": form_degerler.get("anlati_yili", ""),
                 "Konusu": form_degerler.get("konusu", ""),
             }
@@ -167,7 +167,7 @@ class KitapListesiGUI:
                 "Orijinal Adı": bilgiler.get("Orijinal Adı", ""),
                 "Tür": bilgiler.get("Tür", ""),
                 "Ülke/Edebi Gelenek": bilgiler.get("Ülke/Edebi Gelenek", ""),
-                "Çıkış Yılı": bilgiler.get("Çıkış Yılı", ""),
+                "İlk Yayınlanma Tarihi": bilgiler.get("İlk Yayınlanma Tarihi", ""),
                 "Anlatı Yılı": bilgiler.get("Anlatı Yılı", ""),
                 "Konusu": bilgiler.get("Konusu", ""),
             }
@@ -491,7 +491,7 @@ class KitapListesiGUI:
             title="Excel Şablonu Kaydet",
             defaultextension=".xlsx",
             filetypes=[("Excel dosyaları", "*.xlsx"), ("Tüm dosyalar", "*.*")],
-            initialfile="kitap_listesi_sablonu.xlsx"
+            initialfile="kitap_yukleme_sablonu.xlsx"
         )
         
         if not dosya_yolu:
@@ -822,7 +822,7 @@ class KitapListesiGUI:
                     "Orijinal Adı": kitap.get("Orijinal Adı", ""),
                     "Tür": kitap.get("Tür", ""),
                     "Ülke/Edebi Gelenek": kitap.get("Ülke/Edebi Gelenek", ""),
-                    "Çıkış Yılı": kitap.get("Çıkış Yılı", ""),
+                    "İlk Yayınlanma Tarihi": kitap.get("İlk Yayınlanma Tarihi", ""),
                     "Anlatı Yılı": kitap.get("Anlatı Yılı", ""),
                     "Konusu": kitap.get("Konusu", ""),
                 }
@@ -836,7 +836,7 @@ class KitapListesiGUI:
                         "Orijinal Adı": guncellenen_kitap.get("Orijinal Adı", ""),
                         "Tür": guncellenen_kitap.get("Tür", ""),
                         "Ülke/Edebi Gelenek": guncellenen_kitap.get("Ülke/Edebi Gelenek", ""),
-                        "Çıkış Yılı": guncellenen_kitap.get("Çıkış Yılı", ""),
+                        "İlk Yayınlanma Tarihi": guncellenen_kitap.get("İlk Yayınlanma Tarihi", ""),
                         "Anlatı Yılı": guncellenen_kitap.get("Anlatı Yılı", ""),
                         "Konusu": guncellenen_kitap.get("Konusu", ""),
                     }
@@ -854,7 +854,7 @@ class KitapListesiGUI:
                     set_row_status(
                         guncellenen_kitap,
                         status="FAIL",
-                        missing_fields=["Orijinal Adı", "Tür", "Ülke/Edebi Gelenek", "Çıkış Yılı", "Anlatı Yılı", "Konusu"],
+                        missing_fields=["Orijinal Adı", "Tür", "Ülke/Edebi Gelenek", "İlk Yayınlanma Tarihi", "Anlatı Yılı", "Konusu"],
                         best_source="error",
                         retry_count=1,
                         next_retry_hours=6
@@ -863,7 +863,7 @@ class KitapListesiGUI:
                         "Orijinal Adı": kitap.get("Orijinal Adı", ""),
                         "Tür": kitap.get("Tür", ""),
                         "Ülke/Edebi Gelenek": kitap.get("Ülke/Edebi Gelenek", ""),
-                        "Çıkış Yılı": kitap.get("Çıkış Yılı", ""),
+                        "İlk Yayınlanma Tarihi": kitap.get("İlk Yayınlanma Tarihi", ""),
                         "Anlatı Yılı": kitap.get("Anlatı Yılı", ""),
                         "Konusu": kitap.get("Konusu", ""),
                     }

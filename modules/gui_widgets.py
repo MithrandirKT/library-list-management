@@ -139,8 +139,8 @@ class GUIWidgets:
                                          relief=tk.SOLID, bd=2, state='readonly')
         self.widgets['ulke'].grid(row=4, column=1, pady=8, padx=5, sticky=(tk.W, tk.E))
         
-        # Çıkış Yılı - READONLY
-        cikis_label = tk.Label(form_frame, text="Çıkış Yılı:", 
+        # İlk Yayınlanma Tarihi - READONLY
+        cikis_label = tk.Label(form_frame, text="İlk Yayınlanma Tarihi:", 
                                font=label_font, bg='#FFF8DC', fg='#8B4513', anchor='w')
         cikis_label.grid(row=5, column=0, sticky=tk.W, pady=8)
         self.widgets['cikis_yili'] = tk.Entry(form_frame, width=40, font=entry_font,
@@ -248,7 +248,7 @@ class GUIWidgets:
                                     relief=tk.RAISED, bd=3, padx=15, pady=15)
         
         # Treeview (tablo) - Kitap temalı stil
-        columns = ("Seç", "Kitap Adı", "Yazar", "Tür", "Çıkış Yılı")
+        columns = ("Seç", "Kitap Adı", "Yazar", "Tür", "İlk Yayınlanma Tarihi")
         self.tree = ttk.Treeview(liste_frame, columns=columns, show="headings", height=12)
         
         # Stil ayarları
@@ -311,13 +311,6 @@ class GUIWidgets:
                                          activeforeground='#FFFFFF', command=callbacks['tumunu_kaldir'],
                                          **button_style)
             tumunu_kaldir_btn.pack(side=tk.LEFT, padx=5)
-        
-        if 'kitap_sil' in callbacks:
-            sil_btn = tk.Button(liste_button_frame, text="🗑️ Seçili Kitabı Sil", 
-                               bg='#CD5C5C', fg='#FFFFFF', activebackground='#DC143C',
-                               activeforeground='#FFFFFF', command=callbacks['kitap_sil'],
-                               **button_style)
-            sil_btn.pack(side=tk.LEFT, padx=5)
         
         if 'toplu_sil' in callbacks:
             toplu_sil_btn = tk.Button(liste_button_frame, text="🗑️ Seçili Kitapları Sil", 
@@ -389,7 +382,7 @@ class GUIWidgets:
                 kitap.get("Kitap Adı", ""),
                 kitap.get("Yazar", ""),
                 kitap.get("Tür", ""),
-                kitap.get("Çıkış Yılı", "")
+                kitap.get("İlk Yayınlanma Tarihi", "")
             ), tags=(f"item_{idx}",))
         
         # Başlığı güncelle

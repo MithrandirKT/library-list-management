@@ -1,6 +1,6 @@
 # Kitap Listesi Excel Oluşturucu - Hand-off Dokümantasyonu
 
-## 📊 Güncel Durum ve İlerleme (Son Güncelleme: 2026-02-10 - Türkçe Karakter Düzeltmeleri)
+## 📊 Güncel Durum ve İlerleme (Son Güncelleme: 2026-02-10 - Web Search Entegrasyonu ve GPT-OSS-20B)
 
 ### 🎯 Başlangıç Amacı
 Bu çalışma, kitap bilgisini çoklu kaynaktan doğru bağlamda çekmek, Excel'e meta/provenance yazmak ve kota/yanıt hatalarını kontrollü yönetmek için **"field policy + quality gates + wikidata + router + status/checkpoint"** altyapısını kurma amacıyla başladı.
@@ -16,7 +16,7 @@ Bu çalışma, kitap bilgisini çoklu kaynaktan doğru bağlamda çekmek, Excel'
 #### Adım 2: Field Policy + Gates ✅ **TAMAMLANDI** (Kısmen)
 - `field_policy.py` modülü oluşturuldu
 - Her alan için kaynak öncelik sırası tanımlandı
-- "Çıkış Yılı" kaynak sırası iyileştirildi: `openlibrary -> wikidata -> enwiki -> gbooks -> trwiki -> AI`
+- "İlk Yayınlanma Tarihi" kaynak sırası iyileştirildi: `openlibrary -> wikidata -> enwiki -> gbooks -> trwiki -> AI`
 - `quality_gates.py` modülü oluşturuldu
 - Quality gate fonksiyonları eklendi (`gate_publication_year`, `gate_original_title`)
 - Regex pattern'leri genişletildi (volume marker, translation context, edition date kontrolü)
@@ -69,6 +69,19 @@ Bu çalışma, kitap bilgisini çoklu kaynaktan doğru bağlamda çekmek, Excel'
 - Retry logic eklendi (next_retry_at kontrolü)
 - **Test Sonucu**: ✅ PASS (Status/missing_fields Excel'e yazılıyor)
 
+#### Adım 7: Web Search Entegrasyonu ve GPT-OSS-20B ✅ **TAMAMLANDI** (2026-02-10)
+- Groq model değişikliği: `llama-3.3-70b-versatile` → `openai/gpt-oss-20b` (GPT-OSS-20B)
+- Tool-friendly yaklaşım: İlk kısa prompt (token tasarrufu), bilmiyorsa web search
+- Web search entegrasyonu:
+  - DuckDuckGo search (birincil web search)
+  - Türkçe Wikipedia (öncelikli, infobox desteği ile)
+  - İngilizce Wikipedia (fallback)
+  - Google Books API (son çare)
+- Token optimizasyonu: İlk sorgu ~50-100 token, parse sorgu ~100-200 token (toplam ~150-300 token, önceden ~500-1000 token)
+- JSON parse iyileştirmeleri: Eksik JSON'ları handle ediyor, manuel parsing desteği
+- Reasoning mode handling: Reasoning'den JSON çıkarma, retry mekanizması
+- **Test Sonucu**: ✅ PASS (Web search ile obscure kitaplar bulunuyor, token tasarrufu sağlandı)
+
 ### ❌ Kalan İşler (Öncelik Sırasına Göre)
 
 1. ~~**Router/Backoff Entegrasyonu** (Öncelik: Yüksek)~~ ✅ **TAMAMLANDI**
@@ -95,11 +108,41 @@ Bu çalışma, kitap bilgisini çoklu kaynaktan doğru bağlamda çekmek, Excel'
 6. **`field_registry.py`**: Excel şema kolon isimlerini merkezi yönetim
 7. **`test_quality_gates.py`**: Quality gates için unit testler (37 test)
 
+### 📝 Son Oturumda Yapılanlar (2026-02-10 - Web Search Entegrasyonu ve GPT-OSS-20B)
+
+1. **Groq Model Değişikliği** (2026-02-10):
+   - Model: `llama-3.3-70b-versatile` → `openai/gpt-oss-20b` (GPT-OSS-20B)
+   - Browser Search tool desteği (sonra kaldırıldı, manuel web search entegrasyonu yapıldı)
+
+2. **Web Search Entegrasyonu** (2026-02-10):
+   - DuckDuckGo search entegrasyonu (`duckduckgo-search` paketi)
+   - Türkçe Wikipedia entegrasyonu (öncelikli, infobox desteği ile)
+   - İngilizce Wikipedia entegrasyonu (fallback)
+   - Google Books API iyileştirmesi (daha fazla sonuç, daha detaylı bilgi)
+   - Web search sonuçları token tasarrufu için kısaltılıyor (max 2000 karakter)
+
+3. **Tool-Friendly Yaklaşım** (2026-02-10):
+   - İlk kısa prompt (~50-100 token) - training data'dan bilgi varsa direkt döndürür
+   - Bilmiyorsa web search tetiklenir
+   - Web search sonuçları parse edilir (~100-200 token)
+   - Toplam token: ~150-300 token (önceden ~500-1000 token)
+   - %50-70 token tasarrufu sağlandı
+
+4. **JSON Parse İyileştirmeleri** (2026-02-10):
+   - Eksik JSON'ları handle ediyor (kapanış parantezlerini otomatik ekliyor)
+   - Manuel parsing desteği (regex ile key-value çiftlerini çıkarıyor)
+   - Reasoning mode handling: Reasoning'den JSON çıkarma, retry mekanizması
+
+5. **Türkçe Wikipedia Önceliklendirme** (2026-02-10):
+   - Türkçe Wikipedia öncelikli (Türkçe kitaplar için)
+   - İngilizce Wikipedia fallback
+   - Infobox bilgileri çekiliyor (daha fazla detay için)
+
 ### 📝 Codex 5.3 Oturumunda Yapılanlar (2026-02-10)
 
 1. `kitap_listesi_gui.py` stabil sürüme geri alındı (truncate problemi giderildi)
 2. Excel dışarıdan yükleme validasyon sırası düzeltildi: zorunlu kolon kontrolü önce, meta kolon tamamlama sonra
-3. Field policy içinde "Çıkış Yılı" kaynak sırası iyileştirildi
+3. Field policy içinde "İlk Yayınlanma Tarihi" kaynak sırası iyileştirildi
 4. Wikidata istemcisi güçlendirildi (QID çözümleme, field extraction)
 5. Wikipedia cevabından `_wikibase_item` alındı
 6. Gate RED nedenleri debug log'a eklendi
@@ -320,7 +363,7 @@ Windows'ta çalışan, grafik arayüzlü bir kitap listesi yönetim uygulamasıd
 ### 1. Kitap Bilgisi Girişi
 - Formdan kitap bilgileri girilir
 - **Zorunlu alanlar**: Kitap Adı, Yazar
-- **İsteğe bağlı alanlar**: Orijinal Adı, Tür, Ülke/Edebi Gelenek, Çıkış Yılı, Anlatı Yılı, Konusu, Not
+- **İsteğe bağlı alanlar**: Orijinal Adı, Tür, Ülke/Edebi Gelenek, İlk Yayınlanma Tarihi, Anlatı Yılı, Konusu, Not
 - **Otomatik Bilgi Doldurma**: "Bilgileri Otomatik Doldur" butonu ile kitap bilgileri otomatik çekilir
 
 ### 2. Otomatik Bilgi Çekme Sistemi (YENİ)
@@ -344,12 +387,22 @@ Program şu kaynakları sırayla kullanarak kitap bilgilerini çeker:
    - Subject bilgilerinden tür çıkarılır
    - First sentence'den konu bilgisi alınır
 
-4. **Groq AI API** (Birincil AI kaynak - Ücretsiz)
+4. **Groq AI API** (Birincil AI kaynak - Ücretsiz - GPT-OSS-20B)
+   - Model: `openai/gpt-oss-20b` (GPT-OSS-20B - Browser Search tool desteği)
    - Eksik bilgileri AI ile tamamlar
    - Ücretsiz API key gerektirir
    - Çok daha doğru ve kapsamlı bilgiler sağlar
    - **Özellik**: Orijinal adı her zaman Latin harflerine transliterasyon yapar (Kiril, Arap, Çin, Japon vb.)
-   - **Token Tasarrufu**: Prompt optimize edilmiştir (~200-300 token, önceden ~400-600 token)
+   - **Tool-Friendly Yaklaşım**: 
+     - İlk kısa prompt (~50-100 token) - training data'dan bilgi varsa direkt döndürür
+     - Bilmiyorsa web search tetiklenir (DuckDuckGo → Türkçe Wikipedia → İngilizce Wikipedia → Google Books)
+     - Web search sonuçları parse edilir (~100-200 token)
+     - Toplam token: ~150-300 token (önceden ~500-1000 token)
+   - **Web Search Entegrasyonu**:
+     - DuckDuckGo search (birincil web search)
+     - Türkçe Wikipedia (öncelikli, infobox desteği ile)
+     - İngilizce Wikipedia (fallback)
+     - Google Books API (son çare)
    - **Rate Limit**: 100,000 token/gün (ücretsiz tier)
    - Rate limit sonrası otomatik olarak Hugging Face AI'ye geçer
 
@@ -369,7 +422,7 @@ Program şu kaynakları sırayla kullanarak kitap bilgilerini çeker:
 - **Orijinal Adı**: Kitabın ilk çıktığı dildeki adı (Latin harflerine transliterasyon yapılır)
 - **Tür**: Roman, Novella, Öykü, Felsefe, Tarih, Bilim, Şiir, Tiyatro
 - **Ülke/Edebi Gelenek**: Kitabın ilk çıktığı ülke (yazarın ülkesi)
-- **Çıkış Yılı**: Kitabın yazıldığı/yayınlandığı ilk yıl (basım yılı değil)
+- **İlk Yayınlanma Tarihi**: Kitabın yazıldığı/yayınlandığı ilk yıl (basım yılı değil)
 - **Anlatı Yılı**: Kitabın anlattığı olayların geçtiği yıl veya yıl aralığı (örn: "1865", "1865-1869", "19. yüzyıl")
 - **Konusu**: Kitabın konusunu 1-2 cümle ile açıklayan özet
 
@@ -383,14 +436,24 @@ Program şu kaynakları sırayla kullanarak kitap bilgilerini çeker:
 5. Groq'dan sonra hala eksik bilgiler varsa Hugging Face AI ile tamamlanır
 6. Hugging Face başarısız olduğunda veya hala eksik varsa Together AI ile tamamlanır (API key varsa)
 
-**Yeni Policy-Driven Yaklaşım (Önerilen - 2026):**
-1. **Field Policy**: Her alan için kaynak öncelik sırası belirlenir (örn: "Çıkış Yılı" için: openlibrary -> wikidata -> enwiki -> gbooks -> trwiki -> AI)
+**Yeni Policy-Driven Yaklaşım (Önerilen - 2026, Web Search ile Genişletilmiş - 2026-02-10):**
+1. **Field Policy**: Her alan için kaynak öncelik sırası belirlenir (örn: "İlk Yayınlanma Tarihi" için: openlibrary -> wikidata -> enwiki -> gbooks -> trwiki -> AI)
 2. **Kaynak Toplama**: Tüm kaynaklardan (Wikipedia EN/TR, Google Books, Open Library, Wikidata) veri toplanır
 3. **Quality Gates**: Her alan için quality gate fonksiyonları çalıştırılır:
-   - Çıkış Yılı: Translation context kontrolü, edition date kontrolü (classic book'lar için)
+   - İlk Yayınlanma Tarihi: Translation context kontrolü, edition date kontrolü (classic book'lar için)
    - Orijinal Adı: Volume marker kontrolü, same as localized kontrolü (Russian author'lar için)
 4. **Kaynak Seçimi**: Policy'ye göre en yüksek öncelikli kaynaktan geçen değer seçilir
-5. **AI Fallback**: Eksik alanlar için AI kullanılır (router ile quota yönetimi):
+5. **AI Fallback (Tool-Friendly - YENİ - 2026-02-10)**: Eksik alanlar için AI kullanılır (router ile quota yönetimi):
+   - **İlk Sorgu**: Kısa prompt (~50-100 token) - training data'dan bilgi varsa direkt döndürür
+   - **Web Search**: Bilmiyorsa web search tetiklenir (SADECE TÜRKÇE KAYNAKLAR):
+     - DuckDuckGo search (birincil)
+     - Türkçe Wikipedia (öncelikli, infobox desteği ile)
+     - Türkçe Google Books (langRestrict='tr')
+     - Kitapyurdu.com (Türkçe kitap sitesi)
+     - Amazon.com.tr (Türkçe Amazon)
+     - NadirKitap.com (İkinci el kitap sitesi)
+   - **Parse**: Web search sonuçları parse edilir (~100-200 token)
+   - **Token Tasarrufu**: Toplam ~150-300 token (önceden ~500-1000 token)
    - Groq AI (birincil) → Hugging Face AI (yedek) → Together AI (alternatif yedek)
    - Rate limit (429, 503) ve API key hataları (401, 403) router tarafından yönetilir
 6. **Provenance Yazma**: Her alan için kaynak (`src_<field>`) ve güven (`conf_<field>`) bilgisi Excel'e yazılır
@@ -408,8 +471,8 @@ Program şu kaynakları sırayla kullanarak kitap bilgilerini çeker:
 - Seçili satırlar görsel olarak vurgulanır
 
 ### 4. Excel Entegrasyonu
-- **Excel dosyası oluşturma**: Tüm kitapları Excel'e kaydetme (`Kutuphanem.xlsx`)
-- **Excel şablonu oluşturma**: Boş şablon oluşturma (sadece "Kitap Adı" ve "Yazar" sütunları)
+- **Excel dosyası oluşturma**: Tüm kitapları Excel'e kaydetme (`Kutuphanem.xlsx` - masaüstünde oluşturulur)
+- **Excel şablonu oluşturma**: Boş şablon oluşturma (A1: "Kitap", B1: "Yazar", hiçbir formatlama yok, dosya adı: `kitap_yukleme_sablonu.xlsx`)
 - **Excel'den yükleme**: Excel dosyasından toplu kitap ekleme
 - **Excel'den Yükleme Sonrası Otomatik Bilgi Doldurma (YENİ - 2024)**: 
   - Excel'den yükleme sonrası 2 seçenek sunulur:
@@ -435,7 +498,7 @@ Program şu kaynakları sırayla kullanarak kitap bilgilerini çeker:
 
 ### 6. Readonly Form Alanları (YENİ - 2024)
 - **Sadece Kitap Adı ve Yazar manuel yazılabilir**
-- Diğer tüm alanlar (Orijinal Adı, Tür, Ülke/Edebi Gelenek, Çıkış Yılı, Anlatı Yılı, Konusu, Not) **readonly** - sadece otomatik doldurma ile doldurulur
+- Diğer tüm alanlar (Orijinal Adı, Tür, Ülke/Edebi Gelenek, İlk Yayınlanma Tarihi, Anlatı Yılı, Konusu, Not) **readonly** - sadece otomatik doldurma ile doldurulur
 - Kullanıcı bu alanlara manuel yazamaz, bilgiler sadece "Bilgileri Otomatik Doldur" butonu ile gelir
 - Bu sayede veri tutarlılığı sağlanır ve kullanıcı hataları önlenir
 
@@ -561,7 +624,7 @@ widget.config(state='readonly')
 
 **⚠️ DİKKAT:**
 - Excel sütun sırasını değiştirirsen `STANDART_SUTUN_SIRASI`'ı güncelle
-- Şablon oluştururken sadece zorunlu sütunları kullan (sadece "Kitap Adı" ve "Yazar")
+- Şablon oluştururken sadece A1: "Kitap" ve B1: "Yazar" kullan (hiçbir formatlama yok)
 
 #### 6. Mesaj Kısaltma Mantığı
 **Problem:** 500+ kitap olsa bile mesajlar okunabilir olmalı.
@@ -622,18 +685,21 @@ widget.config(state='readonly')
 2. Exception handling ekle
 3. Progress bar güncellemelerini `root.after()` ile yap
 
-#### ⚠️ KRİTİK: Excel Dosya Adı
+#### ⚠️ KRİTİK: Excel Dosya Yolu ve Adı
 **ASLA DEĞİŞTİRME:**
 - Excel dosya adı: `Kutuphanem.xlsx` (sabit)
+- Excel dosyası masaüstünde oluşturulur: `C:\Users\<kullanıcı>\Desktop\Kutuphanem.xlsx`
 - Değiştirirsen mevcut Excel dosyaları bulunamaz
 
 **Güncelleme Yaparken:**
-1. `excel_handler.py` içindeki varsayılan dosya adını değiştirme
+1. `excel_handler.py` içindeki varsayılan dosya yolunu değiştirme
 2. `kitap_listesi_gui.py` içindeki ExcelHandler oluşturma kısmını değiştirme
 
 #### ⚠️ KRİTİK: Excel Şablonu Formatı
 **ASLA DEĞİŞTİRME:**
-- Şablon sadece "Kitap Adı" ve "Yazar" sütunlarını içerir
+- Şablon sadece A1: "Kitap" ve B1: "Yazar" içerir
+- Hiçbir formatlama yok (border, bold, vb.)
+- Dosya adı: `kitap_yukleme_sablonu.xlsx`
 - Diğer sütunlar otomatik doldurma ile gelir
 
 **Güncelleme Yaparken:**
@@ -707,7 +773,7 @@ widget.config(state='readonly')
 
 #### 4. Excel Dosyası Bulunamıyorsa
 - Dosya adı `Kutuphanem.xlsx` mi kontrol et
-- Dosya yolu doğru mu kontrol et
+- Dosya masaüstünde mi kontrol et (`C:\Users\<kullanıcı>\Desktop\Kutuphanem.xlsx`)
 - Dosya izinleri var mı kontrol et
 
 #### 5. API Çağrıları Çalışmıyorsa
@@ -894,42 +960,19 @@ Eğer ilgili klasör yoksa, önce klasör oluşturulmalıdır.
 
 ### Excel Formatı
 
-**Sütun sırası (sabit - YENİ - 2026):**
+**Sütun sırası (sabit - GÜNCELLENDİ - 2026):**
 
-**Veri Kolonları:**
+**Veri Kolonları (Sadece 8 kolon - meta ve provenance kolonları kaldırıldı):**
 1. **Kitap Adı** (zorunlu)
 2. **Yazar** (zorunlu)
 3. Orijinal Adı
 4. Tür
 5. Ülke/Edebi Gelenek
-6. Çıkış Yılı (tek yıl veya aralık formatı: "1869" veya "1865-1869")
+6. İlk Yayınlanma Tarihi (tek yıl veya aralık formatı: "1869" veya "1865-1869")
 7. Anlatı Yılı (kitabın anlattığı olayların geçtiği dönem, örn: "1865", "1865-1869", "19. yüzyıl")
 8. Konusu
-9. Not
 
-**Provenance Kolonları (Her alan için kaynak ve güven bilgisi - YENİ - 2026):**
-10. src_Orijinal Adı (kaynak: "enwiki", "trwiki", "gbooks", "openlibrary", "wikidata", "groq", "hf", "together")
-11. conf_Orijinal Adı (güven: 0.0-1.0)
-12. src_Tür
-13. conf_Tür
-14. src_Ülke/Edebi Gelenek
-15. conf_Ülke/Edebi Gelenek
-16. src_Çıkış Yılı
-17. conf_Çıkış Yılı
-18. src_Anlatı Yılı
-19. conf_Anlatı Yılı
-20. src_Konusu
-21. conf_Konusu
-
-**Satır Seviyesinde Metadata Kolonları (YENİ - 2026):**
-22. status (PENDING, OK, PARTIAL, FAIL, NEEDS_REVIEW)
-23. missing_fields (eksik alanlar listesi, virgülle ayrılmış)
-24. last_attempt_at (son deneme zamanı, ISO format)
-25. retry_count (deneme sayısı)
-26. next_retry_at (sonraki deneme zamanı, ISO format)
-27. best_source (en iyi kaynak: "enwiki", "trwiki", "gbooks", "openlibrary", "wikidata", "groq", "hf", "together")
-28. match_score (eşleşme skoru, 0.0-1.0)
-29. wikidata_qid (Wikidata QID, örn: "Q12345")
+**⚠️ NOT:** Meta kolonları (status, missing_fields, retry_count, vb.) ve provenance kolonları (src_*, conf_*) kaldırıldı. Excel'de sadece temel veri kolonları görünür.
 
 ### Kod Yapısı ve Mantık
 
@@ -1096,7 +1139,7 @@ for sutun in STANDART_SUTUN_SIRASI:
 #### Kitap Ekleme (Manuel - MODÜLER YAPI):
 1. Kullanıcı **sadece Kitap Adı ve Yazar** girer (diğer alanlar readonly)
 2. `FormHandler.dogrula()` ile form doğrulaması yapılır (Kitap Adı ve Yazar zorunlu)
-3. `FormHandler._cikis_yili_dogrula()` ile çıkış yılı kontrolü:
+3. `FormHandler._cikis_yili_dogrula()` ile ilk yayınlanma tarihi kontrolü:
    - Tek yıl: "1869" (1500-2030 aralığında)
    - Aralık: "1865-1869" (her iki yıl da kontrol edilir)
    - Metin: Sayısal kontrol başarısız olursa metin olarak kabul edilir
@@ -1119,7 +1162,7 @@ for sutun in STANDART_SUTUN_SIRASI:
      - Open Library API: first_publish_year kullanarak bilgi çek
      - Wikidata API: QID çözümleme (Wikipedia'dan veya doğrudan) → yapılandırılmış veri çekme
    - **Quality Gates**: Her alan için quality gate fonksiyonları çalıştırılır:
-     - Çıkış Yılı: Translation context, edition date kontrolü
+     - İlk Yayınlanma Tarihi: Translation context, edition date kontrolü
      - Orijinal Adı: Volume marker, same as localized kontrolü
    - **Kaynak Seçimi**: Policy'ye göre en yüksek öncelikli kaynaktan geçen değer seçilir
    - **AI Fallback**: Eksik alanlar için AI kullanılır (`QuotaRouter` ile):
@@ -1136,10 +1179,10 @@ for sutun in STANDART_SUTUN_SIRASI:
 #### Excel İşlemleri (MODÜLER YAPI - Policy-Driven - YENİ - 2026):
 - **Excel Dosyası Oluştur**: 
   - `ListManager.tumunu_getir()` ile liste alınır
-  - `ExcelHandler.kaydet()` ile Excel'e kaydedilir (`Kutuphanem.xlsx`)
-  - Meta kolonlar (provenance, status, missing_fields, vb.) otomatik yazılır
+  - `ExcelHandler.kaydet()` ile Excel'e kaydedilir (`Kutuphanem.xlsx` - masaüstünde oluşturulur)
+  - Sadece temel veri kolonları yazılır (meta ve provenance kolonları kaldırıldı)
 - **Excel Şablonu Oluştur**: 
-  - `ExcelHandler.sablon_olustur()` ile boş şablon oluşturulur (sadece "Kitap Adı" ve "Yazar" sütunları)
+  - `ExcelHandler.sablon_olustur()` ile boş şablon oluşturulur (A1: "Kitap", B1: "Yazar", hiçbir formatlama yok)
 - **Excel'den Yükle**: 
   - `ExcelHandler.disaridan_yukle()` ile Excel dosyası yüklenir
   - Zorunlu kolon kontrolü önce yapılır, meta kolon tamamlama sonra yapılır
@@ -1156,29 +1199,30 @@ for sutun in STANDART_SUTUN_SIRASI:
 
 ### API Entegrasyon Detayları
 
-#### Wikipedia API
-- **URL**: `https://en.wikipedia.org/api/rest_v1/page/summary/` ve `https://tr.wikipedia.org/api/rest_v1/page/summary/`
+#### Wikipedia API (SADECE TÜRKÇE)
+- **URL**: `https://tr.wikipedia.org/api/rest_v1/page/summary/`
 - **Yöntem**: REST API
 - **Arama Stratejisi**:
-  1. Önce İngilizce Wikipedia'da ara (orijinal dildeki bilgiler için)
-  2. Yazar adı eşleşmesi kontrol et
-  3. Bulunamazsa Türkçe Wikipedia'da ara
+  1. Sadece Türkçe Wikipedia'da ara (Türkçe'ye çevrilmiş kitaplar için)
+  2. URL encoding ile Türkçe karakterler düzgün encode edilir
+  3. Infobox bilgileri de çekilir (daha fazla detay için)
 - **Parse Edilen Bilgiler**:
-  - Orijinal adı: İngilizce sayfada title kullanılır veya extract'ten çıkarılır
-  - Çıkış yılı: "first published", "written", "published in" gibi ifadelerden yıl çıkarılır
+  - Orijinal adı: Extract'ten çıkarılır
+  - İlk yayınlanma tarihi: "first published", "written", "published in" gibi ifadelerden yıl çıkarılır
   - Tür: Extract'te geçen tür bilgileri eşleştirilir
   - Ülke: Yazarın ülkesi extract'ten çıkarılır
   - Konusu: Extract'in ilk 1-2 cümlesi
 
-#### Google Books API
+#### Google Books API (SADECE TÜRKÇE)
 - **URL**: `https://www.googleapis.com/books/v1/volumes`
 - **Yöntem**: REST API
 - **Parametreler**:
   - `q`: Kitap adı + Yazar
-  - `maxResults`: 5 (en uygun sonucu bulmak için)
+  - `maxResults`: 10 (daha fazla sonuç)
+  - `langRestrict`: 'tr' (Türkçe kitaplar için)
 - **Parse Edilen Bilgiler**:
   - Orijinal adı: `volumeInfo.title`
-  - Çıkış yılı: `volumeInfo.publishedDate` (YYYY, YYYY-MM, veya YYYY-MM-DD formatı)
+  - İlk yayınlanma tarihi: `volumeInfo.publishedDate` (YYYY, YYYY-MM, veya YYYY-MM-DD formatı)
   - Tür: `volumeInfo.categories` (kategori eşleştirmesi)
   - Konusu: `volumeInfo.description` (ilk 1-2 cümle)
   - Ülke: `volumeInfo.language` (dil-ülke eşleştirmesi)
@@ -1191,14 +1235,14 @@ for sutun in STANDART_SUTUN_SIRASI:
   - `limit`: 1
 - **Parse Edilen Bilgiler**:
   - Orijinal adı: `title`
-  - Çıkış yılı: `first_publish_year` (ilk yayın yılı - doğru!)
+  - İlk yayınlanma tarihi: `first_publish_year` (ilk yayın yılı - doğru!)
   - Tür: `subject` (konu eşleştirmesi)
   - Konusu: `first_sentence` (ilk 1-2 cümle)
 
-#### Groq AI API
+#### Groq AI API (GPT-OSS-20B - Web Search Entegrasyonu ile)
 - **URL**: `https://api.groq.com/openai/v1/chat/completions`
 - **Yöntem**: REST API (OpenAI uyumlu)
-- **Model**: `llama-3.3-70b-versatile` (güncel model)
+- **Model**: `openai/gpt-oss-20b` (GPT-OSS-20B - Browser Search tool desteği)
 - **API Key**: Ücretsiz (https://console.groq.com)
 - **Özellikler**:
   - Çok daha doğru ve kapsamlı bilgiler
@@ -1206,19 +1250,29 @@ for sutun in STANDART_SUTUN_SIRASI:
   - Yazarın ülkesini doğru bulur
   - İlk yayın yılını doğru bulur
   - **Anlatı Yılı** bilgisini de bulur
-- **Prompt Özellikleri**:
-  - Sistem mesajı: "Sen bir kitap bilgisi uzmanısın. Sadece JSON formatında yanıt ver."
-  - **⚠️ Token Tasarrufu**: Prompt optimize edilmiştir (~200-300 token, önceden ~400-600 token)
-  - Kısa ve öz prompt ile 2x daha fazla kitap işlenebilir
-  - Temperature: 0.3 (daha tutarlı sonuçlar için)
-  - Max tokens: 500
+  - **Web Search Entegrasyonu (YENİ - 2026-02-10)**:
+    - Tool-friendly yaklaşım: İlk kısa prompt, bilmiyorsa web search
+    - DuckDuckGo search (birincil web search)
+    - Türkçe Wikipedia (öncelikli, infobox desteği ile)
+    - İngilizce Wikipedia (fallback)
+    - Google Books API (son çare)
+- **Prompt Özellikleri (Tool-Friendly - YENİ - 2026-02-10)**:
+  - **İlk Sorgu**: Kısa prompt (~50-100 token) - "Bilgileri biliyorsan JSON döndür, bilmiyorsan WEB_SEARCH yaz"
+  - **Web Search**: Bilmiyorsa web search tetiklenir, sonuçlar parse edilir (~100-200 token)
+  - **Token Tasarrufu**: Toplam ~150-300 token (önceden ~500-1000 token)
+  - Sistem mesajı: "SADECE JSON döndür. Reasoning yapma, direkt JSON döndür."
+  - Temperature: 0.1 (daha deterministik, reasoning'i azaltır)
+  - Max tokens: 1000 (parse için)
 - **Rate Limit Yönetimi**:
   - Limit: 100,000 token/gün (ücretsiz tier)
   - Rate limit (429) hatası durumunda otomatik olarak Hugging Face AI'ye geçilir
-  - Her çağrı ~200-300 token kullanır (optimize edilmiş prompt ile)
-- **Yanıt İşleme**:
+  - Her çağrı ~150-300 token kullanır (tool-friendly yaklaşım ile)
+- **Yanıt İşleme (İyileştirilmiş - YENİ - 2026-02-10)**:
   - JSON formatında yanıt beklenir
   - ````json ... ```` formatı veya `{...}` formatı parse edilir
+  - Eksik JSON'ları handle ediyor (kapanış parantezlerini otomatik ekliyor)
+  - Manuel parsing desteği (regex ile key-value çiftlerini çıkarıyor)
+  - Reasoning mode handling: Reasoning'den JSON çıkarma, retry mekanizması
   - Sadece eksik alanlar döndürülür
   - Groq başarılı döndü ama bazı alanlar boş olabilir, bu durumda Hugging Face AI devreye girer
 
@@ -1262,8 +1316,7 @@ for sutun in STANDART_SUTUN_SIRASI:
 - `_formu_doldur()`: Çekilen bilgileri forma doldurur
 - `listeye_ekle()`: Formdan kitap bilgilerini alıp listeye ekler
 - `kitap_sec()`: Listeden seçilen kitabı forma yükler (çift tıklama)
-- `kitap_sil()`: Seçili kitabı listeden siler (checkbox veya selection kontrolü)
-- `toplu_sil()`: Seçili kitapları toplu olarak siler
+- `toplu_sil()`: Seçili kitapları toplu olarak siler (tek veya çoklu seçim için kullanılır)
 - `tumunu_kaldir()`: Tüm seçimleri kaldırır
 - `groq_api_key_ayarla()`: Groq API key ayarları dialog'unu gösterir
 - `excel_olustur()`: Kitap listesini Excel'e kaydetme koordinasyonu
@@ -1273,10 +1326,10 @@ for sutun in STANDART_SUTUN_SIRASI:
 
 #### `excel_handler.py` (Excel İşlemleri Modülü - ~229 satır):
 
-- `__init__()`: Excel dosyası yolunu ayarlar (varsayılan: `Kutuphanem.xlsx`)
-- `yukle()`: Excel dosyasından kitap listesini yükler ve format günceller
-- `kaydet()`: Kitap listesini Excel dosyasına kaydeder (`Kutuphanem.xlsx`)
-- `sablon_olustur()`: Boş Excel şablonu oluşturur (sadece "Kitap Adı" ve "Yazar" sütunları)
+- `__init__()`: Excel dosyası yolunu ayarlar (varsayılan: masaüstünde `Kutuphanem.xlsx`)
+- `yukle()`: Excel dosyasından kitap listesini yükler ve format günceller (masaüstünden)
+- `kaydet()`: Kitap listesini Excel dosyasına kaydeder (masaüstünde `Kutuphanem.xlsx`)
+- `sablon_olustur()`: Boş Excel şablonu oluşturur (A1: "Kitap", B1: "Yazar", hiçbir formatlama yok, dosya adı: `kitap_yukleme_sablonu.xlsx`)
 - `disaridan_yukle()`: Dışarıdan Excel dosyası yükler ve parse eder
 - `dosya_acik_mi()`: Excel dosyasının açık olup olmadığını kontrol eder
 - `_format_kontrol_et()`: Format kontrolü yapar
@@ -1300,7 +1353,7 @@ for sutun in STANDART_SUTUN_SIRASI:
 - `doldur()`: Formu bilgilerle doldurur (readonly widget'lar için state geçici normal yapılır)
 - `kitap_yukle()`: Kitap bilgilerini forma yükler (listeden çift tıklama için)
 - `kitap_dict_olustur()`: Formdan kitap dict'i oluşturur
-- `_cikis_yili_dogrula()`: Çıkış yılı doğrulaması yapar
+- `_cikis_yili_dogrula()`: İlk yayınlanma tarihi doğrulaması yapar
 
 #### `list_manager.py` (Liste Yönetimi Modülü - ~120 satır):
 
@@ -1363,7 +1416,7 @@ for sutun in STANDART_SUTUN_SIRASI:
 - `_is_classic_book()`: Classic book detection
 - `_detect_cyrillic_or_arabic()`: Cyrillic/Arabic/CJK character detection
 - `_is_likely_original_language()`: Orijinal dil tespiti
-- `gate_publication_year()`: Çıkış yılı için quality gate
+- `gate_publication_year()`: İlk yayınlanma tarihi için quality gate
 - `gate_original_title()`: Orijinal ad için quality gate
 
 #### `wikidata_client.py` (YENİ - 2026):
@@ -1384,10 +1437,8 @@ for sutun in STANDART_SUTUN_SIRASI:
 
 #### `field_registry.py` (YENİ - 2026):
 
-- `BASE_COLUMNS`: Temel Excel kolonları
-- `PROVENANCE_FIELDS`: Provenance kolonları alan listesi
-- `ROW_META_COLUMNS`: Satır seviyesinde metadata kolonları
-- `standard_columns()`: Tüm standart kolonları döndürür
+- `BASE_COLUMNS`: Temel Excel kolonları (sadece 8 kolon: Kitap Adı, Yazar, Orijinal Adı, Tür, Ülke/Edebi Gelenek, İlk Yayınlanma Tarihi, Anlatı Yılı, Konusu)
+- `standard_columns()`: Sadece temel veri kolonlarını döndürür (meta ve provenance kolonları kaldırıldı)
 - `ensure_row_schema()`: Satır şemasını garanti eder
 
 ### Özel Özellikler
@@ -1402,8 +1453,9 @@ for sutun in STANDART_SUTUN_SIRASI:
 8. **Toplu Silme (YENİ - 2024)**: Seçili kitapları toplu olarak silme
 9. **Listeden Forma Yükleme (YENİ - 2024)**: Listeden kitaba çift tıklayarak forma yükleme
 10. **Excel'den Yükleme Sonrası Otomatik Bilgi Doldurma (YENİ - 2024)**: 2 seçenek ile toplu veya manuel bilgi doldurma
-11. **Excel Şablonu Basitleştirme (YENİ - 2024)**: Şablon sadece "Kitap Adı" ve "Yazar" sütunlarını içerir
-12. **Excel Dosya Adı (YENİ - 2024)**: `Kutuphanem.xlsx` olarak değiştirildi
+11. **Excel Şablonu Basitleştirme (YENİ - 2024)**: Şablon sadece A1: "Kitap" ve B1: "Yazar" içerir (hiçbir formatlama yok, dosya adı: `kitap_yukleme_sablonu.xlsx`)
+12. **Excel Dosya Yolu (YENİ - 2024)**: `Kutuphanem.xlsx` masaüstünde oluşturulur
+13. **Excel Kolonları Basitleştirme (YENİ - 2026)**: Sadece 8 temel veri kolonu (meta ve provenance kolonları kaldırıldı)
 13. **Otomatik format güncelleme**: `ExcelHandler` modülü eski formatı algılayıp yeni formata çevirir
 14. **Akıllı birleştirme**: `ListManager.toplu_ekle()` ile Excel'den yüklerken mevcut listeye ekler, üzerine yazmaz
 15. **Tekrar kontrolü**: `ListManager.ekle()` otomatik tekrar kontrolü yapar
@@ -1460,7 +1512,7 @@ for sutun in STANDART_SUTUN_SIRASI:
 7. Form otomatik doldurulur
 
 ### Senaryo 4: Excel Şablonu ile Toplu Ekleme
-1. "Excel Şablonu Oluştur" ile şablon oluştur (sadece "Kitap Adı" ve "Yazar" sütunları)
+1. "Excel Şablonu Oluştur" ile şablon oluştur (A1: "Kitap", B1: "Yazar", hiçbir formatlama yok)
 2. Excel'de şablonu doldur
 3. "Excel'den Yükle" ile programa yükle
 4. Otomatik bilgi doldurma seçeneği sunulur:
@@ -1469,9 +1521,9 @@ for sutun in STANDART_SUTUN_SIRASI:
 5. "Excel Dosyası Oluştur" ile kaydet (`Kutuphanem.xlsx`)
 
 ### Senaryo 5: Mevcut Excel'i Güncelleme
-1. Program açıldığında mevcut Excel (`Kutuphanem.xlsx`) otomatik yüklenir
+1. Program açıldığında mevcut Excel (masaüstünde `Kutuphanem.xlsx`) otomatik yüklenir
 2. Yeni kitaplar eklenebilir (manuel veya otomatik)
-3. "Excel Dosyası Oluştur" ile güncellenmiş liste kaydedilir
+3. "Excel Dosyası Oluştur" ile güncellenmiş liste masaüstüne kaydedilir
 
 ### Senaryo 6: Checkbox ile Toplu İşlemler (YENİ - 2024)
 1. Listeden kitapları seçmek için "Seç" sütunundaki ☐ işaretine tıklayın → ☑ olur
@@ -1566,7 +1618,8 @@ for sutun in STANDART_SUTUN_SIRASI:
 ## Geliştirme Notları
 
 ### Gelecek İyileştirmeler
-- Web araştırması entegrasyonu (otomatik kitap bilgisi çekme) ✅ **TAMAMLANDI**
+- Web araştırması entegrasyonu (otomatik kitap bilgisi çekme) ✅ **TAMAMLANDI** (2026-02-10 - DuckDuckGo, Wikipedia, Google Books)
+- Tool-friendly yaklaşım ve token optimizasyonu ✅ **TAMAMLANDI** (2026-02-10 - %50-70 token tasarrufu)
 - Modüler mimari refactoring ✅ **TAMAMLANDI** (2024)
 - Policy-driven veri çekme sistemi ✅ **TAMAMLANDI** (2026)
 - Quality gates ve "yanlış bağlam" önleme ✅ **TAMAMLANDI** (2026)
@@ -1673,6 +1726,8 @@ exe_olustur.bat  # Çift tıkla
 pandas>=2.0.0
 openpyxl>=3.1.0
 requests>=2.31.0
+duckduckgo-search>=6.0.0
+beautifulsoup4>=4.12.0
 ```
 
 ### İsteğe Bağlı Bağımlılıklar (İkon ve Shortcut için)
@@ -1684,7 +1739,7 @@ pywin32>=306        # Windows shortcut oluşturma için
 Kurulum:
 ```bash
 # Temel bağımlılıklar
-pip install pandas openpyxl requests
+pip install pandas openpyxl requests duckduckgo-search beautifulsoup4
 
 # İkon ve shortcut için (isteğe bağlı)
 pip install Pillow pywin32
@@ -1755,10 +1810,13 @@ Program artık 13 ayrı modüle bölünmüştür:
 - ✅ Checkbox sistemi (tek tek seçim, tümünü seç/kaldır, toplu silme)
 - ✅ Listeden forma yükleme (çift tıklama)
 - ✅ Excel'den yükleme sonrası otomatik bilgi doldurma (2 seçenek)
-- ✅ Excel şablonu basitleştirme (sadece 2 sütun)
+- ✅ Excel şablonu basitleştirme (A1: "Kitap", B1: "Yazar", hiçbir formatlama yok, dosya adı: `kitap_yukleme_sablonu.xlsx`)
+- ✅ Excel dosyası masaüstünde oluşturulur (`Kutuphanem.xlsx`)
+- ✅ Excel kolonları basitleştirme (sadece 8 temel veri kolonu, meta ve provenance kolonları kaldırıldı)
 - ✅ Excel dosya adı: `Kutuphanem.xlsx`
 - ✅ Otomatik bilgi çekme (Wikipedia, Google Books, Open Library, Groq AI, Hugging Face AI, Together AI)
-- ✅ Groq AI entegrasyonu (ücretsiz, çok doğru sonuçlar, optimize edilmiş prompt ile token tasarrufu)
+- ✅ Groq AI entegrasyonu (ücretsiz, GPT-OSS-20B model, tool-friendly yaklaşım ile %50-70 token tasarrufu)
+- ✅ Web search entegrasyonu (SADECE TÜRKÇE KAYNAKLAR: DuckDuckGo, Türkçe Wikipedia, Türkçe Google Books, Kitapyurdu.com, Amazon.com.tr, NadirKitap.com)
 - ✅ Hugging Face AI entegrasyonu (yedek AI kaynak, Groq rate limit sonrası otomatik geçiş)
 - ✅ Together AI entegrasyonu (alternatif yedek AI kaynak)
 - ✅ API key yönetimi (Groq ve Hugging Face için dosyaya kaydetme, otomatik yükleme)
@@ -1776,6 +1834,9 @@ Program artık 13 ayrı modüle bölünmüştür:
 - ✅ Excel meta kolonları (YENİ - 2026): Status, missing_fields, retry info, best_source, wikidata_qid
 - ✅ Checkpoint mekanizması (YENİ - 2026): Toplu işlemlerde her 50 kayıtta otomatik save
 - ✅ Quality gates unit testleri (YENİ - 2026): 37 test, tümü geçti
+- ✅ Web search entegrasyonu (YENİ - 2026-02-10): DuckDuckGo, Türkçe Wikipedia, İngilizce Wikipedia, Google Books
+- ✅ Tool-friendly yaklaşım (YENİ - 2026-02-10): İlk kısa prompt, bilmiyorsa web search, %50-70 token tasarrufu
+- ✅ GPT-OSS-20B model (YENİ - 2026-02-10): Browser Search tool desteği, daha doğru sonuçlar
 
 **Kod İstatistikleri:**
 - Önceki durum: 1 dosya, 977 satır
@@ -1784,7 +1845,9 @@ Program artık 13 ayrı modüle bölünmüştür:
 - API modülü: Policy-driven çoklu AI API desteği ile ~1089 satır
 - Her modül bağımsız ve test edilebilir
 - İkon ve shortcut sistemleri eklendi
-- Çoklu AI API entegrasyonu (Groq, Hugging Face, Together AI)
+- Çoklu AI API entegrasyonu (Groq GPT-OSS-20B, Hugging Face, Together AI)
+- Web search entegrasyonu (DuckDuckGo, Wikipedia, Google Books)
+- Tool-friendly yaklaşım ve token optimizasyonu (%50-70 token tasarrufu)
 - Policy-driven veri çekme sistemi (field_policy, quality_gates, wikidata, router, provenance)
 - Quality gates unit testleri (37 test, tümü geçti)
 

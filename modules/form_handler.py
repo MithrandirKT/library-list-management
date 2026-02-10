@@ -115,7 +115,7 @@ class FormHandler:
         if not degerler.get('yazar'):
             return False, "Yazar zorunludur! Lutfen yazar adini girin."
         
-        # Çıkış yılı kontrolü
+        # İlk yayınlanma tarihi kontrolü
         cikis_yili = degerler.get('cikis_yili', '')
         if cikis_yili:
             hata = self._cikis_yili_dogrula(cikis_yili)
@@ -161,12 +161,12 @@ class FormHandler:
                 self.widgets['ulke'].insert(0, bilgiler.get("Ülke/Edebi Gelenek", ""))
                 self.widgets['ulke'].config(state='readonly')
         
-        # Çıkış Yılı - Readonly widget
-        if 'cikis_yili' in self.widgets and bilgiler.get("Çıkış Yılı"):
+        # İlk Yayınlanma Tarihi - Readonly widget
+        if 'cikis_yili' in self.widgets and bilgiler.get("İlk Yayınlanma Tarihi"):
             if not sadece_bos or not self.widgets['cikis_yili'].get().strip():
                 self.widgets['cikis_yili'].config(state='normal')
                 self.widgets['cikis_yili'].delete(0, tk.END)
-                self.widgets['cikis_yili'].insert(0, bilgiler.get("Çıkış Yılı", ""))
+                self.widgets['cikis_yili'].insert(0, bilgiler.get("İlk Yayınlanma Tarihi", ""))
                 self.widgets['cikis_yili'].config(state='readonly')
         
         # Anlatı Yılı - Readonly widget
@@ -195,10 +195,10 @@ class FormHandler:
     
     def _cikis_yili_dogrula(self, cikis_yili: str) -> Optional[str]:
         """
-        Çıkış yılı doğrulaması yapar
+        İlk yayınlanma tarihi doğrulaması yapar
         
         Args:
-            cikis_yili: Doğrulanacak çıkış yılı
+            cikis_yili: Doğrulanacak ilk yayınlanma tarihi
             
         Returns:
             Hata mesajı veya None
@@ -210,21 +210,21 @@ class FormHandler:
         if '-' in cikis_yili:
             parts = cikis_yili.split('-')
             if len(parts) != 2:
-                return "Çıkış yılı aralığı geçersiz format! Örnek: '1865-1869'"
+                return "İlk yayınlanma tarihi aralığı geçersiz format! Örnek: '1865-1869'"
             
             try:
                 yil1 = int(parts[0].strip())
                 yil2 = int(parts[1].strip())
                 if not (1500 <= yil1 <= 2030 and 1500 <= yil2 <= 2030):
-                    return "Çıkış yılı mantıklı bir yıl aralığında olmalıdır (1500-2030)!"
+                    return "İlk yayınlanma tarihi mantıklı bir yıl aralığında olmalıdır (1500-2030)!"
             except ValueError:
-                return "Çıkış yılı aralığı geçersiz format! Örnek: '1865-1869'"
+                return "İlk yayınlanma tarihi aralığı geçersiz format! Örnek: '1865-1869'"
         else:
             # Tek yıl formatı
             try:
                 yil = int(cikis_yili)
                 if not (1500 <= yil <= 2030):
-                    return "Çıkış yılı mantıklı bir yıl aralığında olmalıdır (1500-2030)!"
+                    return "İlk yayınlanma tarihi mantıklı bir yıl aralığında olmalıdır (1500-2030)!"
             except ValueError:
                 # Sayı değilse metin olarak kabul et (örn: "yaklaşık 1869")
                 pass
@@ -260,7 +260,7 @@ class FormHandler:
         """
         degerler = self.deger_al()
         
-        # Çıkış yılı doğrulaması ve formatlama
+        # İlk yayınlanma tarihi doğrulaması ve formatlama
         cikis_yili = degerler.get('cikis_yili', '')
         if cikis_yili and '-' in cikis_yili:
             # Aralık formatını koru
@@ -287,7 +287,7 @@ class FormHandler:
             "Orijinal Adı": degerler.get('orijinal_adi', ''),
             "Tür": degerler.get('tur', ''),
             "Ülke/Edebi Gelenek": degerler.get('ulke', ''),
-            "Çıkış Yılı": cikis_yili,
+            "İlk Yayınlanma Tarihi": cikis_yili,
             "Anlatı Yılı": degerler.get('anlati_yili', ''),
             "Konusu": degerler.get('konusu', ''),
             "Not": degerler.get('not_alan', '')
