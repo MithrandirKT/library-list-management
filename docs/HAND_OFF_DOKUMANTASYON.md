@@ -151,8 +151,15 @@ Bu dosyalar root'ta kalmalıdır çünkü:
 2. **Standart yapı**: Python/Git projelerinde bu dosyalar root'ta olur
 3. **Tool uyumluluğu**: `pip`, `git` gibi araçlar bu dosyaları root'ta arar
 
-**⚠️ ÖNEMLİ - Commit Mesajları ve Türkçe Karakterler:**
-- **Commit mesajlarında Türkçe karakterler kullanmayın!** (ç, ğ, ı, ö, ş, ü, İ, Ç, Ğ, Ö, Ş, Ü)
+**⚠️ ÖNEMLİ - Türkçe Karakterler ve Encoding Sorunları:**
+- **Türkçe karakterler yerine İngilizce karakterler kullanın!** (ç, ğ, ı, ö, ş, ü, İ, Ç, Ğ, Ö, Ş, Ü)
+- Bu kural **TÜM YERLERDE** geçerlidir:
+  - ✅ Commit mesajları
+  - ✅ Kod içindeki string'ler (mümkün olduğunca)
+  - ✅ Değişken adları
+  - ✅ Yorumlar (mümkün olduğunca)
+  - ✅ Dosya adları
+  - ✅ Klasör adları
 - Türkçe karakterler yerine İngilizce karakterler kullanın:
   - ç → c, Ç → C
   - ğ → g, Ğ → G
@@ -160,8 +167,12 @@ Bu dosyalar root'ta kalmalıdır çünkü:
   - ö → o, Ö → O
   - ş → s, Ş → S
   - ü → u, Ü → U
-- Bu sayede GitHub'da commit mesajları düzgün görünür ve encoding sorunları önlenir
-- Örnek: "Klasör organizasyonu" yerine "Klasor organizasyonu" kullanın
+- Bu sayede encoding sorunları önlenir ve kod her platformda düzgün çalışır
+- Örnekler:
+  - "Klasör organizasyonu" → "Klasor organizasyonu"
+  - "Düzeltme" → "Duzeltme"
+  - "Güncelleme" → "Guncelleme"
+- **Not**: Eğer bir yerde Türkçe karakter kullanmak zorundaysanız ve encoding problemi yaşıyorsanız, mutlaka İngilizce karaktere çevirin
 
 ### 📝 Son Oturumda Yapılanlar (2026-02-10 - GitHub Güncelleme ve Commit Mesaj Düzeltme)
 
