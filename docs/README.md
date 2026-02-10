@@ -304,7 +304,13 @@ KÜTÜPHANE/
 
 ## 📄 Lisans
 
-Bu program özgür yazılımdır ve eğitim amaçlı kullanılabilir.
+Bu program MIT Lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosyasına bakın.
+
+**MIT Lisansı Özeti:**
+- ✅ Ücretsiz kullanım
+- ✅ Ticari kullanıma izin verilir
+- ✅ Değiştirme ve dağıtma serbest
+- ✅ Sadece telif hakkı bildirimi gerekir
 
 ## 🤝 Katkıda Bulunma
 
