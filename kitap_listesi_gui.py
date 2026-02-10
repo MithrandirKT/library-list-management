@@ -1,6 +1,6 @@
 """
-Kitap Listesi Excel Oluşturucu - GUI Versiyonu
-Windows'ta çalışan grafik arayüzlü uygulama
+Kitap Listesi Excel Olusturucu - GUI Versiyonu
+Windows'ta calisan grafik arayuzlu uygulama
 """
 
 import tkinter as tk
@@ -23,7 +23,7 @@ from gui_widgets import GUIWidgets
 class KitapListesiGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("📚 Kitap Listesi Excel Oluşturucu")
+        self.root.title("📚 Kitap Listesi Excel Olusturucu")
         self.root.geometry("1200x800")
         self.root.resizable(True, True)
         # Kitap temalı arka plan rengi
@@ -62,7 +62,7 @@ class KitapListesiGUI:
         self.listeyi_guncelle()
     
     def gui_olustur(self):
-        """GUI arayüzünü oluştur"""
+        """GUI arayuzunu olustur"""
         callbacks = {
             'bilgileri_otomatik_doldur': self.bilgileri_otomatik_doldur,
             'listeye_ekle': self.listeye_ekle,
@@ -99,15 +99,15 @@ class KitapListesiGUI:
         
         # Zorunlu alan kontrolü
         if not kitap_adi:
-            messagebox.showwarning("Uyarı", "Kitap Adı zorunludur! Lütfen önce kitap adını girin.")
+            messagebox.showwarning("Uyari", "Kitap Adi zorunludur! Lutfen once kitap adini girin.")
             return
         
         if not yazar:
-            messagebox.showwarning("Uyarı", "Yazar zorunludur! Lütfen önce yazar adını girin.")
+            messagebox.showwarning("Uyari", "Yazar zorunludur! Lutfen once yazar adini girin.")
             return
         
         # Progress bar'ı göster
-        self.gui_widgets.progress_goster("Wikipedia'dan bilgiler çekiliyor...")
+        self.gui_widgets.progress_goster("Wikipedia'dan bilgiler cekiliyor...")
         self.root.update()
         
         # ⚠️ KRİTİK: Thread kullanımı (GUI donmaması için)
@@ -121,7 +121,7 @@ class KitapListesiGUI:
     
     def _bilgileri_cek_ve_doldur(self, kitap_adi: str, yazar: str):
         """
-        Arka planda bilgileri çek ve formu doldur (Policy modu)
+        Arka planda bilgileri cek ve formu doldur (Policy modu)
         
         ⚠️ KRİTİK: Thread-safe GUI güncellemeleri
         - Bu fonksiyon thread'de çalışır
@@ -157,7 +157,7 @@ class KitapListesiGUI:
                 print(f"Groq API key kullanılıyor: {groq_key[:10]}...")
             
             # Policy modu ile bilgi çek
-            self.root.after(0, lambda: self.gui_widgets.progress_mesaj_guncelle("Kaynaklardan bilgiler çekiliyor (Policy modu)..."))
+            self.root.after(0, lambda: self.gui_widgets.progress_mesaj_guncelle("Kaynaklardan bilgiler cekiliyor (Policy modu)..."))
             
             print(f"Policy modu ile bilgi çekiliyor: {kitap_adi} - {yazar}")
             bilgiler = self.bilgi_cekici.kitap_bilgisi_cek_policy(kitap_adi, yazar, mevcut_bilgiler)
@@ -187,12 +187,12 @@ class KitapListesiGUI:
             print(f"Policy modu hatası: {e}")
             import traceback
             traceback.print_exc()
-            self.root.after(0, lambda: messagebox.showerror("Hata", f"Bilgiler çekilirken hata oluştu:\n\n{str(e)}"))
+            self.root.after(0, lambda: messagebox.showerror("Hata", f"Bilgiler cekilirken hata olustu:\n\n{str(e)}"))
         finally:
             self.root.after(0, self.gui_widgets.progress_gizle)
     
     def _formu_doldur(self, bilgiler: dict):
-        """Formu çekilen bilgilerle doldur"""
+        """Formu cekilen bilgilerle doldur"""
         if not self.form_handler:
             return
         
@@ -204,7 +204,7 @@ class KitapListesiGUI:
         
         if bulunan_alanlar:
             # Bulunan alan sayısını göster, detayları gösterme
-            mesaj = f"✅ Bilgiler başarıyla çekildi!\n\n"
+            mesaj = f"✅ Bilgiler basariyla cekildi!\n\n"
             mesaj += f"📚 '{kitap_adi}' için {len(bulunan_alanlar)} alan dolduruldu:\n"
             
             # Sadece alan isimlerini göster (ilk 5 alan)
@@ -220,11 +220,11 @@ class KitapListesiGUI:
             
             messagebox.showinfo("✅ Başarılı", mesaj)
         else:
-            mesaj = f"⚠️ '{kitap_adi}' için bilgi bulunamadı.\n\n"
+            mesaj = f"⚠️ '{kitap_adi}' icin bilgi bulunamadi.\n\n"
             if not self.api_key_manager.get():
                 mesaj += "💡 İpucu: Groq API Key ekleyerek daha fazla bilgi bulabilirsiniz.\n"
                 mesaj += "(Groq API Key butonuna tıklayın)\n\n"
-            mesaj += "Lütfen bilgileri manuel olarak girin."
+            mesaj += "Lutfen bilgileri manuel olarak girin."
             messagebox.showwarning("⚠️ Uyarı", mesaj)
     
     def listeye_ekle(self, mesaj_goster=True):
@@ -235,7 +235,7 @@ class KitapListesiGUI:
         # Form doğrulaması
         basarili, hata = self.form_handler.dogrula()
         if not basarili:
-            messagebox.showwarning("Uyarı", hata)
+            messagebox.showwarning("Uyari", hata)
             return False
         
         # Kitap dict'i oluştur
@@ -258,7 +258,7 @@ class KitapListesiGUI:
                 else:
                     return False
             else:
-                messagebox.showwarning("Uyarı", hata or "Kitap eklenemedi!")
+                messagebox.showwarning("Uyari", hata or "Kitap eklenemedi!")
                 return False
         
         # Listeyi güncelle
@@ -274,7 +274,7 @@ class KitapListesiGUI:
             messagebox.showinfo("✅ Başarılı", 
                               f"📚 '{kitap_adi}' listeye eklendi!\n\n"
                               f"📊 Toplam kitap sayısı: {self.list_manager.sayi()}\n\n"
-                              f"💡 Excel dosyasına kaydetmek için 'Excel Dosyası Oluştur' butonuna tıklayın.")
+                              f"💡 Excel dosyasina kaydetmek icin 'Excel Dosyasi Olustur' butonuna tiklayin.")
         return True
     
     def listeyi_guncelle(self):
@@ -317,9 +317,9 @@ class KitapListesiGUI:
         # Checkbox seçimi yoksa, Treeview'in kendi selection'ını kontrol et
         selected = self.gui_widgets.tree.selection()
         if not selected:
-            messagebox.showwarning("Uyarı", 
-                                  "Lütfen silmek için bir kitap seçin!\n\n"
-                                  "💡 'Seç' sütunundaki ☐ işaretine tıklayarak kitap seçebilirsiniz.")
+            messagebox.showwarning("Uyari", 
+                                  "Lutfen silmek icin bir kitap secin!\n\n"
+                                  "💡 'Sec' sutunundaki ☐ isaretine tiklayarak kitap secebilirsiniz.")
             return
         
         # Seçili satırın indeksini bul
@@ -344,7 +344,7 @@ class KitapListesiGUI:
         secili_indeksler = self.gui_widgets.secili_kitaplari_getir()
         
         if not secili_indeksler:
-            messagebox.showwarning("Uyarı", "Lütfen silmek için en az bir kitap seçin!\n\n💡 'Seç' sütunundaki ☐ işaretine tıklayarak kitap seçebilirsiniz.")
+            messagebox.showwarning("Uyari", "Lutfen silmek icin en az bir kitap secin!\n\n💡 'Sec' sutunundaki ☐ isaretine tiklayarak kitap secebilirsiniz.")
             return
         
         # Onay mesajı
@@ -424,7 +424,7 @@ class KitapListesiGUI:
                     messagebox.showinfo("✅ Bilgi", f"📚 '{kisa_kitap_adi}' listeye eklendi ve Excel dosyasına kaydedilecek.")
         
         if self.list_manager.sayi() == 0:
-            messagebox.showwarning("Uyarı", "Listede kitap yok! Lütfen önce kitap ekleyin.")
+            messagebox.showwarning("Uyari", "Listede kitap yok! Lutfen once kitap ekleyin.")
             return
         
         # Excel dosyası açık mı kontrol et
@@ -471,10 +471,10 @@ class KitapListesiGUI:
             messagebox.showerror("Hata", 
                                 f"Excel dosyası kaydedilemedi!\n\n"
                                 f"'{self.excel_handler.excel_dosyasi}' dosyası başka bir programda açık olabilir.\n\n"
-                                f"Lütfen:\n"
-                                f"1. Excel dosyasını kapatın\n"
-                                f"2. Dosyanın başka bir programda açık olmadığından emin olun\n"
-                                f"3. Tekrar deneyin")
+                f"Lutfen:\n"
+                f"1. Excel dosyasini kapatin\n"
+                f"2. Dosyanin baska bir programda acik olmadigindan emin olun\n"
+                f"3. Tekrar deneyin")
         except Exception as e:
             # Hata mesajını kısalt - traceback gösterme
             hata_mesaji = str(e)
@@ -483,7 +483,7 @@ class KitapListesiGUI:
             messagebox.showerror("❌ Hata", 
                                 f"Excel dosyası oluşturulurken hata oluştu:\n\n"
                                 f"{hata_mesaji}\n\n"
-                                f"💡 Lütfen dosyanın açık olmadığından ve yazma izniniz olduğundan emin olun.")
+                                f"💡 Lutfen dosyanin acik olmadigindan ve yazma izniniz oldugundan emin olun.")
     
     def excel_sablonu_olustur(self):
         """Boş Excel şablonu oluştur"""
@@ -505,10 +505,10 @@ class KitapListesiGUI:
             else:
                 dosya_yolu_kisa = dosya_yolu
             
-            messagebox.showinfo("✅ Başarılı", 
-                              f"📄 Excel şablonu oluşturuldu!\n\n"
+            messagebox.showinfo("✅ Basarili", 
+                              f"📄 Excel sablonu olusturuldu!\n\n"
                               f"📁 {dosya_yolu_kisa}\n\n"
-                              f"💡 Bu şablonu doldurup 'Excel'den Yükle' butonu ile programa yükleyebilirsiniz.")
+                              f"💡 Bu sablonu doldurup 'Excel'den Yukle' butonu ile programa yukleyebilirsiniz.")
         else:
             messagebox.showerror("Hata", "Excel şablonu oluşturulurken hata oluştu!")
     
@@ -528,8 +528,8 @@ class KitapListesiGUI:
             if kitaplar is None:
                 messagebox.showerror("Hata", 
                                     f"Excel dosyası yüklenemedi!\n\n"
-                                    f"Lütfen Excel şablonu kullanın veya dosyanın doğru formatta olduğundan emin olun.\n"
-                                    f"Excel şablonu oluşturmak için 'Excel Şablonu Oluştur' butonunu kullanabilirsiniz.")
+                                    f"Lutfen Excel sablonu kullanin veya dosyanin dogru formatta oldugundan emin olun.\n"
+                                    f"Excel sablonu olusturmak icin 'Excel Sablonu Olustur' butonunu kullanabilirsiniz.")
                 return
             
             if not kitaplar:
@@ -589,8 +589,8 @@ class KitapListesiGUI:
             messagebox.showerror("❌ Hata", 
                                 f"Excel dosyası yüklenirken hata oluştu:\n\n"
                                 f"{hata_mesaji}\n\n"
-                                f"💡 Lütfen Excel dosyasının doğru formatta olduğundan emin olun.\n"
-                                f"Excel şablonu oluşturmak için 'Excel Şablonu Oluştur' butonunu kullanabilirsiniz.")
+                f"💡 Lutfen Excel dosyasinin dogru formatta oldugundan emin olun.\n"
+                f"Excel sablonu olusturmak icin 'Excel Sablonu Olustur' butonunu kullanabilirsiniz.")
     
     def _otomatik_doldurma_dialog_goster(self, kitap_sayisi: int) -> str:
         """
@@ -603,7 +603,7 @@ class KitapListesiGUI:
             "toplu", "manuel" veya "iptal"
         """
         dialog = tk.Toplevel(self.root)
-        dialog.title("🤖 Seçim Yapın")
+        dialog.title("🤖 Secim Yapin")
         dialog.geometry("600x450")
         dialog.resizable(False, False)
         dialog.configure(bg='#F5E6D3')
@@ -620,7 +620,7 @@ class KitapListesiGUI:
         baslik_frame = tk.Frame(dialog, bg='#8B4513', relief=tk.RAISED, bd=3)
         baslik_frame.pack(fill=tk.X, padx=0, pady=0)
         
-        baslik = tk.Label(baslik_frame, text="🤖 Otomatik Bilgi Doldurma Seçimi", 
+        baslik = tk.Label(baslik_frame, text="🤖 Otomatik Bilgi Doldurma Secimi", 
                          font=("Georgia", 16, "bold"), 
                          bg='#8B4513', fg='#FFF8DC', pady=15)
         baslik.pack()
@@ -630,7 +630,7 @@ class KitapListesiGUI:
         icerik_frame.pack(fill=tk.BOTH, expand=True)
         
         # Mesaj
-        mesaj_text = f"Excel'den {kitap_sayisi} kitap yüklendi.\n\nLütfen bir seçenek seçin:"
+        mesaj_text = f"Excel'den {kitap_sayisi} kitap yuklendi.\n\nLutfen bir secenek secin:"
         mesaj_label = tk.Label(icerik_frame, text=mesaj_text,
                                font=("Georgia", 12, "bold"),
                                bg='#F5E6D3', fg='#654321',
@@ -651,7 +651,7 @@ class KitapListesiGUI:
         secenek1_frame.pack(fill=tk.X, pady=10, padx=10)
         
         radio1 = tk.Radiobutton(secenek1_frame,
-                               text="🔄 Her kitap için toplu çağrı yap",
+                               text="🔄 Her kitap icin toplu cagri yap",
                                variable=secim_var,
                                value="toplu",
                                font=("Georgia", 11, "bold"),
@@ -665,7 +665,7 @@ class KitapListesiGUI:
         radio1.pack(fill=tk.X, padx=15, pady=10)
         
         aciklama1 = tk.Label(secenek1_frame,
-                            text="   → Tüm kitaplar için otomatik bilgi doldurma yapılır\n   → Bu işlem biraz zaman alabilir (her kitap için API çağrısı)",
+                            text="   → Tum kitaplar icin otomatik bilgi doldurma yapilir\n   → Bu islem biraz zaman alabilir (her kitap icin API cagrisi)",
                             font=("Georgia", 9),
                             bg='#FFF8DC', fg='#654321',
                             justify=tk.LEFT,
@@ -677,7 +677,7 @@ class KitapListesiGUI:
         secenek2_frame.pack(fill=tk.X, pady=10, padx=10)
         
         radio2 = tk.Radiobutton(secenek2_frame,
-                               text="👆 Manuel çift tıklayarak forma yükle",
+                               text="👆 Manuel cift tiklayarak forma yukle",
                                variable=secim_var,
                                value="manuel",
                                font=("Georgia", 11, "bold"),
@@ -691,7 +691,7 @@ class KitapListesiGUI:
         radio2.pack(fill=tk.X, padx=15, pady=10)
         
         aciklama2 = tk.Label(secenek2_frame,
-                            text="   → Listeden bir kitaba çift tıklayarak forma yükleyin\n   → Sonra 'Bilgileri Otomatik Doldur' butonuna tıklayın",
+                            text="   → Listeden bir kitaba cift tiklayarak forma yukleyin\n   → Sonra 'Bilgileri Otomatik Doldur' butonuna tiklayin",
                             font=("Georgia", 9),
                             bg='#FFF8DC', fg='#654321',
                             justify=tk.LEFT,
@@ -704,7 +704,7 @@ class KitapListesiGUI:
         
         # Bilgi mesajı
         bilgi_label = tk.Label(butonlar_frame,
-                               text="💡 Bir seçenek seçtiğinizde işlem otomatik başlar",
+                               text="💡 Bir secenek sectiginizde islem otomatik baslar",
                                font=("Georgia", 9, "italic"),
                                bg='#F5E6D3', fg='#654321')
         bilgi_label.pack(pady=(0, 10))
@@ -734,7 +734,7 @@ class KitapListesiGUI:
         """Seçimi kontrol et ve dialog'u kapat"""
         secim = secim_var.get()
         if not secim:
-            messagebox.showwarning("Uyarı", "Lütfen bir seçenek seçin!")
+            messagebox.showwarning("Uyari", "Lutfen bir secenek secin!")
             return
         self._dialog_kapat(dialog, sonuc, secim)
     
@@ -756,8 +756,8 @@ class KitapListesiGUI:
         if not groq_key:
             messagebox.showwarning(
                 "Groq API Key Gerekli",
-                "Otomatik bilgi doldurma için Groq API Key gereklidir!\n\n"
-                "Lütfen 'Groq API Key' butonuna tıklayıp API key'inizi girin.\n"
+                "Otomatik bilgi doldurma icin Groq API Key gereklidir!\n\n"
+                "Lutfen 'Groq API Key' butonuna tiklayip API key'inizi girin.\n"
                 "Alternatif: Listeden bir kitaba çift tıklayarak forma yükleyip 'Bilgileri Otomatik Doldur' butonuna tıklayabilirsiniz."
             )
             return
@@ -928,7 +928,7 @@ class KitapListesiGUI:
         except Exception as e:
             self.root.after(0, lambda: messagebox.showerror(
                 "❌ Hata",
-                f"Otomatik bilgi doldurma sırasında hata oluştu:\n\n{str(e)}"
+                f"Otomatik bilgi doldurma sirasinda hata olustu:\n\n{str(e)}"
             ))
         finally:
             self.root.after(0, self.gui_widgets.progress_gizle)
@@ -1000,7 +1000,7 @@ class KitapListesiGUI:
         # API key girişi
         api_key = simpledialog.askstring(
             "Groq API Key",
-            "Groq API Key'inizi girin (boş bırakırsanız mevcut key silinir):",
+            "Groq API Key'inizi girin (bos birakirsaniz mevcut key silinir):",
             show='*'
         )
         
@@ -1010,7 +1010,7 @@ class KitapListesiGUI:
         if api_key.strip():
             if self.api_key_manager.kaydet(api_key.strip()):
                 self.bilgi_cekici.groq_api_key = api_key.strip()
-                messagebox.showinfo("Başarılı", "Groq API Key kaydedildi!")
+                messagebox.showinfo("Basarili", "Groq API Key kaydedildi!")
                 # Buton metnini güncelle
                 durum = self.api_key_manager.durum()
                 self.gui_widgets.api_key_buton_guncelle(durum)
