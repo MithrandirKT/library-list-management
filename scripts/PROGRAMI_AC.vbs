@@ -1,9 +1,10 @@
 Set WshShell = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
-REM Mevcut dizini al
+REM Mevcut dizini al (bir üst dizine çık - scripts/ klasöründen root'a)
 scriptPath = fso.GetParentFolderName(WScript.ScriptFullName)
-WshShell.CurrentDirectory = scriptPath
+parentPath = fso.GetParentFolderName(scriptPath)
+WshShell.CurrentDirectory = parentPath
 
 REM Python programini baslat (konsol penceresi gizli)
 REM 0 = gizli pencere, False = bekleme yok

@@ -6,6 +6,8 @@ Kitap listesi CRUD işlemleri
 from typing import List, Dict, Optional
 from tkinter import messagebox
 
+from field_registry import ensure_row_schema
+
 
 class ListManager:
     """Kitap listesi yönetimi için sınıf"""
@@ -39,7 +41,7 @@ class ListManager:
             if kitap_adi.lower() in mevcut_isimler:
                 return False, f"'{kitap_adi}' adlı kitap zaten listede var!"
         
-        self.kitap_listesi.append(kitap)
+        self.kitap_listesi.append(ensure_row_schema(kitap))
         return True, None
     
     def sil(self, index: int) -> tuple[bool, Optional[Dict]]:
@@ -122,7 +124,7 @@ class ListManager:
             if tekrar_kontrol and kitap_adi.lower() in mevcut_isimler:
                 atlananlar.append(kitap_adi)
             else:
-                eklenecekler.append(kitap)
+                eklenecekler.append(ensure_row_schema(kitap))
                 mevcut_isimler.append(kitap_adi.lower())
         
         # Ekle

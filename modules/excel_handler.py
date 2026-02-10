@@ -9,6 +9,7 @@ from typing import List, Dict, Optional
 from openpyxl import load_workbook
 from openpyxl.styles import numbers
 
+from field_registry import standard_columns
 
 class ExcelHandler:
     """Excel dosyası işlemleri için sınıf"""
@@ -20,17 +21,8 @@ class ExcelHandler:
     # 3. gui_widgets.py içindeki Treeview sütunlarını güncelle
     # 4. form_handler.py içindeki form alanlarını güncelle
     # 5. HAND_OFF_DOKUMANTASYON.md dosyasını güncelle
-    STANDART_SUTUN_SIRASI = [
-        "Kitap Adı",
-        "Yazar",
-        "Orijinal Adı",
-        "Tür",
-        "Ülke/Edebi Gelenek",
-        "Çıkış Yılı",
-        "Anlatı Yılı",
-        "Konusu",
-        "Not"
-    ]
+    # Not: Meta kolonlar da bu standarda dahildir.
+    STANDART_SUTUN_SIRASI = standard_columns()
     
     def __init__(self, excel_dosyasi: str = "Kutuphanem.xlsx"):
         """
@@ -56,6 +48,7 @@ class ExcelHandler:
         
         try:
             df = pd.read_excel(self.excel_dosyasi, engine='openpyxl')
+            df = self._ensure_columns(df)
             
             # Format kontrolü ve güncelleme
             format_guncellenmeli = self._format_kontrol_et(df)
@@ -143,9 +136,8 @@ class ExcelHandler:
         - HAND_OFF_DOKUMANTASYON.md dosyasını güncelle
         """
         try:
-            # Şablon için sadece zorunlu sütunlar
-            sablon_sutunlari = ["Kitap Adı", "Yazar"]
-            df = pd.DataFrame(columns=sablon_sutunlari)
+            # ?ablon i?in standart s?tunlar (veri + meta)
+            df = pd.DataFrame(columns=self.STANDART_SUTUN_SIRASI)
             df.to_excel(dosya_yolu, index=False, engine='openpyxl')
             return True
         except Exception as e:
@@ -171,6 +163,9 @@ class ExcelHandler:
             
             if eksik_sutunlar:
                 raise ValueError(f"Eksik sütunlar: {', '.join(eksik_sutunlar)}")
+
+            # Zorunlu kolonlar dogrulandiktan sonra eksik meta kolonlarini tamamla
+            df = self._ensure_columns(df)
             
             # Boş satırları filtrele
             df = df.dropna(subset=['Kitap Adı', 'Yazar'], how='all')
@@ -214,47 +209,57 @@ class ExcelHandler:
     
     def _format_kontrol_et(self, df: pd.DataFrame) -> bool:
         """
-        Excel dosyasının formatının güncel olup olmadığını kontrol eder
-        
+        Excel dosyas?n?n format?n?n g?ncel olup olmad???n? kontrol eder
+
         Args:
             df: DataFrame
-            
+
         Returns:
-            Güncellenmeli ise True
+            G?ncellenmeli ise True
         """
+        # Eksik s?tun varsa format g?ncellenmeli
+        for sutun in self.STANDART_SUTUN_SIRASI:
+            if sutun not in df.columns:
+                return True
+
         if len(df.columns) > 1:
-            # İkinci sütun "Yazar" değilse eski format
+            # ?kinci s?tun "Yazar" de?ilse eski format
             if df.columns[1] != "Yazar":
                 return True
         elif "Yazar" not in df.columns:
-            # Yazar sütunu yoksa eski format
+            # Yazar s?tunu yoksa eski format
             return True
-        
+
         return False
-    
+
     def _format_guncelle(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        DataFrame'i yeni formata göre günceller
-        
+        DataFrame'i yeni formata g?re g?nceller
+
         Args:
-            df: Güncellenecek DataFrame
-            
+            df: G?ncellenecek DataFrame
+
         Returns:
-            Güncellenmiş DataFrame
+            G?ncellenmi? DataFrame
         """
-        # Eksik sütunları ekle
+        # Kolonlar? standarda uyarla
+        df = self._ensure_columns(df)
+
+        # Y?l s?tunlar?n? say?sal formata ?evir
+        df = self._yil_sutunlarini_formatla(df)
+
+        return df
+
+    def _ensure_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Eksik kolonlar? ekler ve kolon s?ras?n? standarda g?re d?zenler.
+        """
         for sutun in self.STANDART_SUTUN_SIRASI:
             if sutun not in df.columns:
                 df[sutun] = ""
-        
-        # Sütun sırasını düzenle
-        df = df[self.STANDART_SUTUN_SIRASI]
-        
-        # Yıl sütunlarını sayısal formata çevir
-        df = self._yil_sutunlarini_formatla(df)
-        
-        return df
-    
+
+        return df[self.STANDART_SUTUN_SIRASI]
+
     def _yil_sutunlarini_formatla(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Yıl sütunlarını sayısal formata çevirir (tek yıllar sayı, aralıklar metin kalır)

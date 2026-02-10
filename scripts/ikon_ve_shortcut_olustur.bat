@@ -21,7 +21,9 @@ if exist kitap_ikon.png del kitap_ikon.png
 
 REM Ikon olustur
 echo Ikon olusturuluyor...
+cd /d "%~dp0"
 python ikon_olustur.py
+cd /d "%~dp0\.."
 echo.
 
 REM pywin32 kontrolu
@@ -64,7 +66,7 @@ echo Eger ikon degismedi ise:
 echo 1. Shortcut'a sag tiklayin
 echo 2. "Ozellikler" secin
 echo 3. "Degistir" butonuna tiklayin
-echo 4. Yeni ikon dosyasini secin: kitap_ikon.ico
+echo 4. Yeni ikon dosyasini secin: icons\kitap_ikon.ico
 echo.
 echo VEYA
 echo.

@@ -114,18 +114,26 @@ def ikon_kaydet():
     import os
     
     # Eski ikon dosyalarını sil
-    if os.path.exists('kitap_ikon.png'):
-        os.remove('kitap_ikon.png')
-    if os.path.exists('kitap_ikon.ico'):
-        os.remove('kitap_ikon.ico')
+    # İkon dosyalarını icons/ klasörüne kaydet
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    icons_dir = os.path.join(base_dir, 'icons')
+    os.makedirs(icons_dir, exist_ok=True)
+    
+    png_path = os.path.join(icons_dir, 'kitap_ikon.png')
+    ico_path = os.path.join(icons_dir, 'kitap_ikon.ico')
+    
+    if os.path.exists(png_path):
+        os.remove(png_path)
+    if os.path.exists(ico_path):
+        os.remove(ico_path)
     
     # Ana ikon (256x256) - Windows shortcut'ları için yeterli
     print("🎨 Yeni kütüphane temalı ikon oluşturuluyor...")
     ana_ikon = kitap_ikon_olustur(256)
     
     # PNG olarak kaydet (Windows shortcut'ları PNG'yi de destekler)
-    ana_ikon.save('kitap_ikon.png', format='PNG')
-    print("✅ PNG ikon oluşturuldu: kitap_ikon.png")
+    ana_ikon.save(png_path, format='PNG')
+    print(f"✅ PNG ikon oluşturuldu: {png_path}")
     
     # ICO dosyası oluştur (Windows için daha iyi destek)
     # Farklı boyutlarda ICO oluştur
@@ -133,8 +141,8 @@ def ikon_kaydet():
         # RGB moduna çevir (ICO için gerekli)
         ico_ikon = ana_ikon.convert('RGB')
         # ICO olarak kaydet
-        ico_ikon.save('kitap_ikon.ico', format='ICO')
-        print("✅ ICO ikon oluşturuldu: kitap_ikon.ico")
+        ico_ikon.save(ico_path, format='ICO')
+        print(f"✅ ICO ikon oluşturuldu: {ico_path}")
         print("💡 İkon dosyaları başarıyla oluşturuldu!")
     except Exception as e:
         print(f"⚠️ ICO kaydedilemedi (PNG kullanılacak): {e}")

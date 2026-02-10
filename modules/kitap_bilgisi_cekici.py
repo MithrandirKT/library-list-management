@@ -10,6 +10,12 @@ import time
 import json
 import os
 
+from field_policy import build_rules
+from provenance import set_field, set_row_status
+from router import QuotaRouter
+from wikidata_client import qid_from_wikipedia, fetch_entity, extract_fields
+from field_registry import ensure_row_schema
+
 
 class KitapBilgisiCekici:
     def __init__(self):
@@ -27,24 +33,28 @@ class KitapBilgisiCekici:
         self.together_api_key = os.getenv('TOGETHER_API_KEY', '')
         # Hugging Face API key - önce dosyadan, sonra environment variable'dan dene
         self.huggingface_api_key = self._huggingface_key_yukle()
+        # Router state for AI providers
+        self.router = QuotaRouter()
+        self._last_status_code: Optional[int] = None
     
     def _huggingface_key_yukle(self) -> str:
         """Hugging Face API key'i yükler (önce dosyadan, sonra environment variable'dan)"""
         # Önce dosyadan dene
         try:
-            if os.path.exists("huggingface_api_key.txt"):
-                with open("huggingface_api_key.txt", 'r', encoding='utf-8') as f:
+            # data/ klasöründen yükle
+            base_dir = os.path.dirname(os.path.dirname(__file__))
+            key_path = os.path.join(base_dir, "data", "huggingface_api_key.txt")
+            if os.path.exists(key_path):
+                with open(key_path, 'r', encoding='utf-8') as f:
                     key = f.read().strip()
                     if key:
-                        print(f"Hugging Face API key dosyadan yüklendi: {key[:10]}...")
                         return key
-        except Exception as e:
-            print(f"Hugging Face API key dosyadan yükleme hatası: {e}")
+        except Exception:
+            pass
         
         # Dosyadan yüklenemediyse environment variable'dan dene
         env_key = os.getenv('HUGGINGFACE_API_KEY', '')
         if env_key:
-            print(f"Hugging Face API key environment variable'dan yüklendi: {env_key[:10]}...")
             return env_key
         
         return ''
@@ -92,46 +102,31 @@ class KitapBilgisiCekici:
                     if alan in openlib_bilgi and openlib_bilgi[alan]:
                         sonuc[alan] = openlib_bilgi[alan]
         
-        # Son olarak eksik bilgileri Groq AI ile tamamla
-        eksik_alanlar = [k for k, v in sonuc.items() if not v or v == ""]
-        if eksik_alanlar and self.groq_api_key:
-            try:
-                groq_bilgi = self._groq_ai_cek(kitap_adi, yazar, eksik_alanlar, sonuc)
-                if groq_bilgi:
-                    for alan in eksik_alanlar:
-                        if alan in groq_bilgi and groq_bilgi[alan]:
-                            sonuc[alan] = groq_bilgi[alan]
-            except Exception as e:
-                print(f"Groq AI hatası: {e}")
-        
-        # ⚠️ ÖNEMLİ: Groq'dan sonra hala eksik bilgiler varsa yedek API'ler ile tamamla
-        # Groq başarılı döndü ama bazı alanlar boş olabilir, bu yüzden tekrar kontrol et
+        # AI fallback for missing fields (router ile quota yönetimi)
         eksik_alanlar = [k for k, v in sonuc.items() if not v or v == ""]
         if eksik_alanlar:
-            # Önce Hugging Face AI dene
-            try:
-                huggingface_bilgi = self._huggingface_ai_cek(kitap_adi, yazar, eksik_alanlar, sonuc)
-                if huggingface_bilgi:
-                    for alan in eksik_alanlar:
-                        if alan in huggingface_bilgi and huggingface_bilgi[alan]:
-                            sonuc[alan] = huggingface_bilgi[alan]
-                            print(f"✅ Hugging Face AI ile '{alan}' bulundu: {huggingface_bilgi[alan][:50]}...")
-                    # Hugging Face başarılı olduysa, hala eksik alanlar varsa Together AI'ye geç
-                    eksik_alanlar = [k for k, v in sonuc.items() if not v or v == ""]
-            except Exception as e:
-                print(f"Hugging Face AI hatası: {e}")
-            
-            # Hala eksik alanlar varsa Together AI dene (ücretsiz tier)
-            if eksik_alanlar and self.together_api_key:
-                try:
-                    together_bilgi = self._together_ai_cek(kitap_adi, yazar, eksik_alanlar, sonuc)
-                    if together_bilgi:
-                        for alan in eksik_alanlar:
-                            if alan in together_bilgi and together_bilgi[alan]:
-                                sonuc[alan] = together_bilgi[alan]
-                                print(f"✅ Together AI ile '{alan}' bulundu: {together_bilgi[alan][:50]}...")
-                except Exception as e:
-                    print(f"Together AI hatası: {e}")
+            def _call_groq():
+                result = self._groq_ai_cek(kitap_adi, yazar, eksik_alanlar, sonuc)
+                return result, self._last_status_code
+
+            def _call_hf():
+                result = self._huggingface_ai_cek(kitap_adi, yazar, eksik_alanlar, sonuc)
+                return result, self._last_status_code
+
+            def _call_together():
+                result = self._together_ai_cek(kitap_adi, yazar, eksik_alanlar, sonuc)
+                return result, self._last_status_code
+
+            for name, fn in [("groq", _call_groq), ("hf", _call_hf), ("together", _call_together)]:
+                ai_data = self.router.call(name, fn)
+                if not ai_data:
+                    continue
+                for alan in eksik_alanlar:
+                    if alan in ai_data and ai_data[alan]:
+                        sonuc[alan] = ai_data[alan]
+                eksik_alanlar = [k for k, v in sonuc.items() if not v or v == ""]
+                if not eksik_alanlar:
+                    break
         
         return sonuc
     
@@ -166,8 +161,8 @@ class KitapBilgisiCekici:
                 if 'extract' in data and yazar.lower() in data.get('extract', '').lower():
                     return self._wikipedia_parse(data, kitap_adi, yazar, lang='tr')
             
-        except Exception as e:
-            print(f"Wikipedia hatası: {e}")
+        except Exception:
+            pass
         
         return None
     
@@ -352,8 +347,8 @@ class KitapBilgisiCekici:
                     # Eşleşme yoksa ilk sonucu kullan
                     return self._google_books_parse(data['items'][0], kitap_adi, yazar)
             
-        except Exception as e:
-            print(f"Google Books hatası: {e}")
+        except Exception:
+            pass
         
         return None
     
@@ -470,8 +465,8 @@ class KitapBilgisiCekici:
                 if 'docs' in data and len(data['docs']) > 0:
                     return self._open_library_parse(data['docs'][0], kitap_adi, yazar)
             
-        except Exception as e:
-            print(f"Open Library hatası: {e}")
+        except Exception:
+            pass
         
         return None
     
@@ -543,11 +538,7 @@ class KitapBilgisiCekici:
             # API key'i temizle (başında/sonunda boşluk olabilir)
             api_key = (self.groq_api_key or '').strip()
             if not api_key:
-                print("Groq API key bulunamadı!")
                 return None
-            
-            print(f"Groq API çağrısı başlatılıyor...")
-            print(f"API Key uzunluğu: {len(api_key)} karakter")
             
             # Eksik bilgiler için prompt oluştur
             eksik_alan_str = ", ".join(eksik_alanlar)
@@ -611,30 +602,18 @@ Sadece JSON formatında döndür, başka açıklama yapma. Örnek format:
                 'max_tokens': 500
             }
             
-            print(f"Groq API'ye istek gönderiliyor...")
-            print(f"URL: {self.groq_api_url}")
-            print(f"Model: {data['model']}")
-            
             response = requests.post(self.groq_api_url, headers=headers, json=data, timeout=30)
-            
-            print(f"Groq API yanıt kodu: {response.status_code}")
+            self._last_status_code = response.status_code
             
             if response.status_code == 200:
                 result = response.json()
-                print(f"Groq API yanıtı alındı")
                 
                 # Yanıtı kontrol et
                 if 'choices' not in result or len(result['choices']) == 0:
-                    print("Groq API yanıtında 'choices' bulunamadı!")
-                    print(f"Yanıt: {result}")
                     return None
                 
                 content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
-                print(f"Groq AI içerik uzunluğu: {len(content)} karakter")
-                print(f"Groq AI içerik (ilk 500 karakter): {content[:500]}")
-                
                 if not content:
-                    print("Groq AI'den boş içerik geldi!")
                     return None
                 
                 # JSON'u parse et
@@ -649,13 +628,9 @@ Sadece JSON formatında döndür, başka açıklama yapma. Örnek format:
                         if json_match:
                             json_str = json_match.group(0)
                         else:
-                            print("JSON bloğu bulunamadı!")
-                            print(f"İçerik: {content}")
                             return None
                     
-                    print(f"JSON string bulundu: {json_str[:200]}...")
                     bilgiler = json.loads(json_str)
-                    print(f"JSON parse başarılı: {bilgiler}")
                     
                     # Sadece eksik alanları döndür
                     sonuc = {}
@@ -663,49 +638,27 @@ Sadece JSON formatında döndür, başka açıklama yapma. Örnek format:
                         if alan in bilgiler and bilgiler[alan]:
                             sonuc[alan] = str(bilgiler[alan]).strip()
                     
-                    print(f"Döndürülecek sonuç: {sonuc}")
                     return sonuc
                     
-                except json.JSONDecodeError as e:
-                    print(f"Groq AI JSON parse hatası: {e}")
-                    print(f"Parse edilmeye çalışılan JSON: {json_str if 'json_str' in locals() else 'bulunamadı'}")
-                    print(f"Alınan içerik: {content}")
+                except json.JSONDecodeError:
                     return None
             elif response.status_code == 429:
-                # Rate limit hatası - Hugging Face'e geçilecek
-                print(f"⚠️ Groq API rate limit hatası (429) - Hugging Face AI'ye geçilecek")
-                try:
-                    error_data = response.json()
-                    print(f"Rate limit detayı: {error_data.get('error', {}).get('message', 'Bilinmeyen hata')}")
-                except:
-                    pass
-                return None  # None döndür ki Hugging Face'e geçilsin
+                # Rate limit hatası - router tarafından yönetilecek
+                return None
             else:
                 # Hata durumu
-                print(f"Groq API hatası! Status code: {response.status_code}")
-                try:
-                    error_data = response.json()
-                    print(f"Hata detayı: {error_data}")
-                except:
-                    print(f"Hata metni: {response.text[:500]}")
                 return None
             
         except requests.exceptions.Timeout:
-            print("Groq API timeout hatası!")
             return None
-        except requests.exceptions.RequestException as e:
-            print(f"Groq API istek hatası: {e}")
+        except requests.exceptions.RequestException:
             return None
-        except Exception as e:
-            print(f"Groq AI genel hatası: {e}")
-            import traceback
-            traceback.print_exc()
+        except Exception:
             return None
     
     def _huggingface_ai_cek(self, kitap_adi: str, yazar: str, eksik_alanlar: list, mevcut_bilgiler: dict) -> Optional[Dict[str, str]]:
         """Hugging Face Inference API kullanarak eksik kitap bilgilerini çeker (ücretsiz, yedek API)"""
         try:
-            print(f"Hugging Face AI çağrısı başlatılıyor... (yedek API)")
             
             # Eksik bilgiler için prompt oluştur
             eksik_alan_str = ", ".join(eksik_alanlar)
@@ -767,15 +720,11 @@ Sadece JSON formatında döndür, başka açıklama yapma. Örnek format:
                 }
             }
             
-            print(f"Hugging Face Router API'ye istek gönderiliyor...")
-            print(f"URL: {self.huggingface_api_url}")
             response = requests.post(self.huggingface_api_url, headers=headers, json=data, timeout=30)
-            
-            print(f"Hugging Face API yanıt kodu: {response.status_code}")
+            self._last_status_code = response.status_code
             
             if response.status_code == 200:
                 result = response.json()
-                print(f"Hugging Face API yanıtı alındı")
                 
                 # Hugging Face yanıt formatı: [{"generated_text": "..."}]
                 if isinstance(result, list) and len(result) > 0:
@@ -783,15 +732,9 @@ Sadece JSON formatında döndür, başka açıklama yapma. Örnek format:
                 elif isinstance(result, dict):
                     content = result.get('generated_text', '')
                 else:
-                    print("Hugging Face API yanıt formatı beklenmedik!")
-                    print(f"Yanıt: {result}")
                     return None
                 
-                print(f"Hugging Face AI içerik uzunluğu: {len(content)} karakter")
-                print(f"Hugging Face AI içerik (ilk 500 karakter): {content[:500]}")
-                
                 if not content:
-                    print("Hugging Face AI'den boş içerik geldi!")
                     return None
                 
                 # JSON'u parse et
@@ -806,13 +749,9 @@ Sadece JSON formatında döndür, başka açıklama yapma. Örnek format:
                         if json_match:
                             json_str = json_match.group(0)
                         else:
-                            print("JSON bloğu bulunamadı!")
-                            print(f"İçerik: {content}")
                             return None
                     
-                    print(f"JSON string bulundu: {json_str[:200]}...")
                     bilgiler = json.loads(json_str)
-                    print(f"JSON parse başarılı: {bilgiler}")
                     
                     # Sadece eksik alanları döndür
                     sonuc = {}
@@ -820,52 +759,225 @@ Sadece JSON formatında döndür, başka açıklama yapma. Örnek format:
                         if alan in bilgiler and bilgiler[alan]:
                             sonuc[alan] = str(bilgiler[alan]).strip()
                     
-                    print(f"Döndürülecek sonuç: {sonuc}")
                     return sonuc
                     
-                except json.JSONDecodeError as e:
-                    print(f"Hugging Face AI JSON parse hatası: {e}")
-                    print(f"Parse edilmeye çalışılan JSON: {json_str if 'json_str' in locals() else 'bulunamadı'}")
-                    print(f"Alınan içerik: {content}")
+                except json.JSONDecodeError:
                     return None
-            elif response.status_code == 410:
-                # API URL değişmiş - router.huggingface.co kullanılmalı
-                print("⚠️ Hugging Face API URL'si güncellenmiş! Router API kullanılıyor...")
-                # URL zaten güncellendi, tekrar deneme yapılabilir ama şimdilik None döndür
-                try:
-                    error_data = response.json()
-                    print(f"410 Hata detayı: {error_data}")
-                except:
-                    pass
-                return None
             elif response.status_code == 503:
-                # Model yükleniyor, biraz bekle ve tekrar dene
-                print("Hugging Face model yükleniyor, bekleniyor...")
-                time.sleep(5)
+                # Model yükleniyor, router tarafından yönetilecek
                 return None
             else:
                 # Hata durumu
-                print(f"Hugging Face API hatası! Status code: {response.status_code}")
-                try:
-                    error_data = response.json()
-                    print(f"Hata detayı: {error_data}")
-                    # Eğer hata mesajında URL değişikliği varsa bilgilendir
-                    if isinstance(error_data, dict) and 'error' in error_data:
-                        error_msg = str(error_data['error'])
-                        if 'router.huggingface.co' in error_msg or 'no longer supported' in error_msg:
-                            print("⚠️ UYARI: Hugging Face API URL'si güncellenmiş olabilir!")
-                except:
-                    print(f"Hata metni: {response.text[:500]}")
                 return None
             
         except requests.exceptions.Timeout:
-            print("Hugging Face API timeout hatası!")
             return None
-        except requests.exceptions.RequestException as e:
-            print(f"Hugging Face API istek hatası: {e}")
+        except requests.exceptions.RequestException:
             return None
-        except Exception as e:
-            print(f"Hugging Face AI genel hatası: {e}")
-            import traceback
-            traceback.print_exc()
+        except Exception:
             return None
+
+    def _together_ai_cek(self, kitap_adi: str, yazar: str, eksik_alanlar: list, mevcut_bilgiler: dict) -> Optional[Dict[str, str]]:
+        """Together AI API kullanarak eksik kitap bilgilerini çeker (alternatif yedek API)"""
+        try:
+            if not self.together_api_key:
+                return None
+
+            eksik_alan_str = ", ".join(eksik_alanlar)
+            mevcut_bilgi_str = "\n".join([f"- {k}: {v}" for k, v in mevcut_bilgiler.items() if v])
+
+            prompt = f"""Sen bir kitap bilgisi uzmanısın. Aşağıdaki kitap hakkında eksik bilgileri doldur.
+
+Kitap Adı (Türkçe): {kitap_adi}
+Yazar: {yazar}
+
+Mevcut Bilgiler:
+{mevcut_bilgi_str if mevcut_bilgi_str else "Henüz bilgi yok"}
+
+Eksik Bilgiler: {eksik_alan_str}
+
+Lütfen şu bilgileri bul ve JSON formatında döndür:
+- Orijinal Adı
+- Tür
+- Ülke/Edebi Gelenek
+- Çıkış Yılı
+- Anlatı Yılı
+- Konusu
+Sadece JSON döndür."""
+
+            headers = {
+                'Authorization': f'Bearer {self.together_api_key}',
+                'Content-Type': 'application/json'
+            }
+            data = {
+                'model': 'meta-llama/Llama-3.1-70B-Instruct-Turbo',
+                'messages': [
+                    {'role': 'system', 'content': 'Sadece JSON formatında yanıt ver.'},
+                    {'role': 'user', 'content': prompt}
+                ],
+                'temperature': 0.3,
+                'max_tokens': 500
+            }
+            response = requests.post(self.together_api_url, headers=headers, json=data, timeout=30)
+            self._last_status_code = response.status_code
+
+            if response.status_code != 200:
+                return None
+
+            result = response.json()
+            content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+            if not content:
+                return None
+
+            # JSON parse
+            json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', content, re.DOTALL)
+            if not json_match:
+                return None
+
+            bilgiler = json.loads(json_match.group(0))
+            sonuc = {}
+            for alan in eksik_alanlar:
+                if alan in bilgiler and bilgiler[alan]:
+                    sonuc[alan] = str(bilgiler[alan]).strip()
+            return sonuc
+        except Exception:
+            return None
+
+    def _wikipedia_fetch_lang(self, kitap_adi: str, yazar: str, lang: str) -> Dict[str, str]:
+        """Belirli dilde Wikipedia özetinden bilgi çeker ve parse eder."""
+        try:
+            from urllib.parse import quote
+
+            arama_terimleri = [
+                f"{kitap_adi} ({yazar})",
+                kitap_adi,
+                f"{yazar} {kitap_adi}",
+            ]
+            for arama_terimi in arama_terimleri:
+                url = f"https://{lang}.wikipedia.org/api/rest_v1/page/summary/{quote(arama_terimi)}"
+                response = requests.get(url, timeout=5)
+                if response.status_code == 200:
+                    data = response.json()
+                    extract = data.get('extract', '')
+                    if not extract:
+                        continue
+                    if yazar.lower() in extract.lower() or arama_terimi == kitap_adi:
+                        fields = self._wikipedia_parse(data, kitap_adi, yazar, lang=lang)
+                        fields["_extract"] = extract
+                        fields["_title"] = data.get("title", "")
+                        fields["_wikibase_item"] = data.get("wikibase_item", "")
+                        return fields
+        except Exception:
+            pass
+        return {}
+
+    def _collect_sources(self, kitap_adi: str, yazar: str) -> Dict[str, Dict[str, str]]:
+        sources: Dict[str, Dict[str, str]] = {}
+
+        enwiki = self._wikipedia_fetch_lang(kitap_adi, yazar, "en")
+        if enwiki:
+            sources["enwiki"] = enwiki
+
+        trwiki = self._wikipedia_fetch_lang(kitap_adi, yazar, "tr")
+        if trwiki:
+            sources["trwiki"] = trwiki
+
+        gbooks = self._google_books_cek(kitap_adi, yazar) or {}
+        if gbooks:
+            sources["gbooks"] = gbooks
+
+        openlib = self._open_library_cek(kitap_adi, yazar) or {}
+        if openlib:
+            sources["openlibrary"] = openlib
+
+        # Wikidata
+        qid = (
+            sources.get("enwiki", {}).get("_wikibase_item")
+            or sources.get("trwiki", {}).get("_wikibase_item")
+        )
+        if not qid and "enwiki" in sources and sources["enwiki"].get("_title"):
+            qid = qid_from_wikipedia(sources["enwiki"]["_title"], "en")
+        if not qid and "trwiki" in sources and sources["trwiki"].get("_title"):
+            qid = qid_from_wikipedia(sources["trwiki"]["_title"], "tr")
+        if qid:
+            entity = fetch_entity(qid)
+            wd_fields = extract_fields(entity)
+            if wd_fields:
+                wd_fields["_qid"] = qid
+                sources["wikidata"] = wd_fields
+
+        return sources
+
+    def kitap_bilgisi_cek_policy(self, kitap_adi: str, yazar: str, mevcut: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+        """
+        Field-policy tabanlı bilgi çekme.
+        Sadece boş alanları doldurur ve provenance yazar.
+        """
+        row = ensure_row_schema(mevcut or {})
+        rules = build_rules()
+        sources = self._collect_sources(kitap_adi, yazar)
+
+        # Alan bazlı doldurma (non-AI)
+        for field, rule in rules.items():
+            if row.get(field):
+                continue
+
+            for source in rule.sources:
+                if source not in sources:
+                    continue
+
+                candidate = sources[source].get(field)
+                if not candidate:
+                    continue
+
+                context = {
+                    "source": source,
+                    "extract": sources[source].get("_extract", ""),
+                    "localized_title": kitap_adi,
+                    "author": yazar,
+                }
+                if rule.gate:
+                    ok, reason = rule.gate(candidate, context)
+                    if not ok:
+                        print(f"Gate RED field='{field}' source='{source}' reason='{reason}' value='{candidate}'")
+                        continue
+
+                set_field(row, field, str(candidate).strip(), source, rule.default_conf)
+                break
+
+        # AI fallback for missing fields
+        missing = [f for f in rules.keys() if not row.get(f)]
+        if missing:
+            def _call_groq():
+                result = self._groq_ai_cek(kitap_adi, yazar, missing, row)
+                return result, self._last_status_code
+
+            def _call_hf():
+                result = self._huggingface_ai_cek(kitap_adi, yazar, missing, row)
+                return result, self._last_status_code
+
+            def _call_together():
+                result = self._together_ai_cek(kitap_adi, yazar, missing, row)
+                return result, self._last_status_code
+
+            for name, fn in [("groq", _call_groq), ("hf", _call_hf), ("together", _call_together)]:
+                ai_data = self.router.call(name, fn)
+                if not ai_data:
+                    continue
+                for field, value in ai_data.items():
+                    if field in rules and not row.get(field) and value:
+                        set_field(row, field, str(value).strip(), name, 0.4)
+                missing = [f for f in rules.keys() if not row.get(f)]
+                if not missing:
+                    break
+
+        # Status and qid
+        qid = ""
+        if "wikidata" in sources:
+            qid = sources["wikidata"].get("_qid", "")
+        status = "OK" if not missing else ("PARTIAL" if any(row.get(f) for f in rules.keys()) else "FAIL")
+        retry_count = 0 if status == "OK" else 1
+        next_retry_hours = 6 if status != "OK" else None
+        set_row_status(row, status, missing, best_source="policy", wikidata_qid=qid, retry_count=retry_count, next_retry_hours=next_retry_hours)
+        return row
+

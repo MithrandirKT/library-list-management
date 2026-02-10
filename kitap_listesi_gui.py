@@ -6,6 +6,12 @@ Windows'ta çalışan grafik arayüzlü uygulama
 import tkinter as tk
 from tkinter import messagebox, filedialog, simpledialog
 import threading
+import sys
+import os
+
+# modules klasörünü path'e ekle
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'modules'))
+
 from kitap_bilgisi_cekici import KitapBilgisiCekici
 from excel_handler import ExcelHandler
 from api_key_manager import APIKeyManager
@@ -24,8 +30,10 @@ class KitapListesiGUI:
         self.root.configure(bg='#F5E6D3')
         
         # Modüller
-        self.excel_handler = ExcelHandler("Kutuphanem.xlsx")
-        self.api_key_manager = APIKeyManager("groq_api_key.txt")
+        # Dosya path'lerini data/ klasörüne göre ayarla
+        base_dir = os.path.dirname(__file__)
+        self.excel_handler = ExcelHandler(os.path.join(base_dir, "data", "Kutuphanem.xlsx"))
+        self.api_key_manager = APIKeyManager(os.path.join(base_dir, "data", "groq_api_key.txt"))
         self.list_manager = ListManager()
         self.bilgi_cekici = KitapBilgisiCekici()
         
@@ -113,87 +121,72 @@ class KitapListesiGUI:
     
     def _bilgileri_cek_ve_doldur(self, kitap_adi: str, yazar: str):
         """
-        Arka planda bilgileri çek ve formu doldur
+        Arka planda bilgileri çek ve formu doldur (Policy modu)
         
         ⚠️ KRİTİK: Thread-safe GUI güncellemeleri
         - Bu fonksiyon thread'de çalışır
         - GUI güncellemeleri için root.after() kullan (thread-safe)
         - Direkt widget erişimi YAPMA!
         - Exception handling yap, hataları GUI'ye bildir
+        
+        ⚠️ YENİ: Policy modu kullanılıyor (field_policy + quality_gates + wikidata + router)
         """
         try:
-            bilgiler = {
-                "Orijinal Adı": "",
-                "Tür": "",
-                "Ülke/Edebi Gelenek": "",
-                "Çıkış Yılı": "",
-                "Anlatı Yılı": "",
-                "Konusu": ""
+            # Mevcut form değerlerini al (Excel kolon isimlerine dönüştür)
+            form_degerler = self.form_handler.deger_al() if self.form_handler else {}
+            
+            # Form değerlerini Excel kolon isimlerine dönüştür
+            mevcut_bilgiler = {
+                "Kitap Adı": kitap_adi,
+                "Yazar": yazar,
+                "Orijinal Adı": form_degerler.get("orijinal_adi", ""),
+                "Tür": form_degerler.get("tur", ""),
+                "Ülke/Edebi Gelenek": form_degerler.get("ulke", ""),
+                "Çıkış Yılı": form_degerler.get("cikis_yili", ""),
+                "Anlatı Yılı": form_degerler.get("anlati_yili", ""),
+                "Konusu": form_degerler.get("konusu", ""),
             }
             
-            # API key kontrolü
+            # API key kontrolü (policy fonksiyonu API key olmadan da çalışır, ama AI fallback için gerekli)
             groq_key = self.api_key_manager.get()
             if not groq_key:
                 groq_key = self.api_key_manager.yukle()
             
-            if not groq_key:
-                # ⚠️ DİKKAT: Thread'den GUI'ye erişim - root.after() kullan
-                self.root.after(0, lambda: messagebox.showwarning(
-                    "Groq API Key Gerekli",
-                    "Groq API Key bulunamadı!\n\n"
-                    "Lütfen 'Groq API Key' butonuna tıklayıp API key'inizi girin.\n"
-                    "API key dosyaya kaydedilecek ve bir daha girmenize gerek kalmayacak."
-                ))
-                self.root.after(0, self.gui_widgets.progress_gizle)
-                return
+            if groq_key:
+                self.bilgi_cekici.groq_api_key = groq_key
+                print(f"Groq API key kullanılıyor: {groq_key[:10]}...")
             
-            # API key'i bilgi_cekici'ye aktar
-            self.bilgi_cekici.groq_api_key = groq_key
-            print(f"Groq API key kullanılıyor: {groq_key[:10]}...")
+            # Policy modu ile bilgi çek
+            self.root.after(0, lambda: self.gui_widgets.progress_mesaj_guncelle("Kaynaklardan bilgiler çekiliyor (Policy modu)..."))
             
-            eksik_alanlar = list(bilgiler.keys())
+            print(f"Policy modu ile bilgi çekiliyor: {kitap_adi} - {yazar}")
+            bilgiler = self.bilgi_cekici.kitap_bilgisi_cek_policy(kitap_adi, yazar, mevcut_bilgiler)
             
-            self.root.after(0, lambda: self.gui_widgets.progress_mesaj_guncelle("Groq AI ile bilgiler çekiliyor..."))
+            # Sadece form alanlarını çıkar (meta kolonları hariç)
+            form_bilgileri = {
+                "Orijinal Adı": bilgiler.get("Orijinal Adı", ""),
+                "Tür": bilgiler.get("Tür", ""),
+                "Ülke/Edebi Gelenek": bilgiler.get("Ülke/Edebi Gelenek", ""),
+                "Çıkış Yılı": bilgiler.get("Çıkış Yılı", ""),
+                "Anlatı Yılı": bilgiler.get("Anlatı Yılı", ""),
+                "Konusu": bilgiler.get("Konusu", ""),
+            }
             
-            try:
-                print(f"Groq AI'ye istek gönderiliyor: {kitap_adi} - {yazar}")
-                groq_bilgi = self.bilgi_cekici._groq_ai_cek(kitap_adi, yazar, eksik_alanlar, bilgiler)
-                
-                if groq_bilgi and len(groq_bilgi) > 0:
-                    print(f"Groq AI'den gelen bilgiler: {groq_bilgi}")
-                    for alan in eksik_alanlar:
-                        if alan in groq_bilgi and groq_bilgi[alan]:
-                            bilgiler[alan] = groq_bilgi[alan]
-                            print(f"  ✓ {alan}: {groq_bilgi[alan]}")
-            except Exception as e:
-                print(f"Groq AI hatası: {e}")
-                import traceback
-                traceback.print_exc()
-                # Groq hatası durumunda Hugging Face'e geçilecek (rate limit vs.)
-            
-            # ⚠️ ÖNEMLİ: Groq'dan sonra hala eksik bilgiler varsa Hugging Face AI ile tamamla
-            eksik_alanlar = [k for k, v in bilgiler.items() if not v or v == ""]
-            if eksik_alanlar:
-                try:
-                    self.root.after(0, lambda: self.gui_widgets.progress_mesaj_guncelle("Hugging Face AI ile eksik bilgiler tamamlanıyor..."))
-                    print(f"Hugging Face AI'ye istek gönderiliyor (eksik alanlar: {eksik_alanlar})...")
-                    huggingface_bilgi = self.bilgi_cekici._huggingface_ai_cek(kitap_adi, yazar, eksik_alanlar, bilgiler)
-                    
-                    if huggingface_bilgi and len(huggingface_bilgi) > 0:
-                        print(f"Hugging Face AI'den gelen bilgiler: {huggingface_bilgi}")
-                        for alan in eksik_alanlar:
-                            if alan in huggingface_bilgi and huggingface_bilgi[alan]:
-                                bilgiler[alan] = huggingface_bilgi[alan]
-                                print(f"  ✅ Hugging Face AI ile '{alan}' bulundu: {huggingface_bilgi[alan][:50]}...")
-                except Exception as e:
-                    print(f"Hugging Face AI hatası: {e}")
-                    import traceback
-                    traceback.print_exc()
+            print(f"Policy modu sonuçları:")
+            from provenance import field_key
+            for alan, deger in form_bilgileri.items():
+                if deger:
+                    key = field_key(alan)
+                    kaynak = bilgiler.get(f"src_{key}", "unknown") if key else "unknown"
+                    print(f"  ✓ {alan}: {deger[:50]}... (kaynak: {kaynak})")
             
             # Formu doldur
-            self.root.after(0, self._formu_doldur, bilgiler)
+            self.root.after(0, self._formu_doldur, form_bilgileri)
             
         except Exception as e:
+            print(f"Policy modu hatası: {e}")
+            import traceback
+            traceback.print_exc()
             self.root.after(0, lambda: messagebox.showerror("Hata", f"Bilgiler çekilirken hata oluştu:\n\n{str(e)}"))
         finally:
             self.root.after(0, self.gui_widgets.progress_gizle)
@@ -798,6 +791,21 @@ class KitapListesiGUI:
                     basarisiz += 1
                     continue
                 
+                # Retry logic: next_retry_at kontrolü
+                next_retry_at = kitap.get('next_retry_at', '')
+                if next_retry_at:
+                    try:
+                        from datetime import datetime
+                        retry_time = datetime.fromisoformat(next_retry_at.replace('Z', '+00:00'))
+                        now = datetime.utcnow()
+                        if now < retry_time:
+                            # Henüz retry zamanı gelmedi, atla
+                            print(f"Retry bekleniyor ({kitap_adi}): {next_retry_at}")
+                            continue
+                    except Exception:
+                        # Parse hatası, devam et
+                        pass
+                
                 # Progress güncelle
                 self.root.after(0, lambda idx=i+1, total=toplam, adi=kitap_adi: 
                     self.gui_widgets.progress_mesaj_guncelle(f"{idx}/{total} kitap işleniyor... ({adi[:30]}...)")
@@ -807,61 +815,89 @@ class KitapListesiGUI:
                 self.root.after(0, lambda adi=kitap_adi, yaz=yazar: self._animasyon_form_yukle(adi, yaz))
                 time.sleep(0.1)  # GUI güncellemesi için kısa bekleme
                 
-                # Bilgileri çek
-                bilgiler = {
+                # Policy modu ile bilgi çek (mevcut kitap bilgilerini kullan)
+                mevcut_kitap = {
+                    "Kitap Adı": kitap_adi,
+                    "Yazar": yazar,
                     "Orijinal Adı": kitap.get("Orijinal Adı", ""),
                     "Tür": kitap.get("Tür", ""),
                     "Ülke/Edebi Gelenek": kitap.get("Ülke/Edebi Gelenek", ""),
                     "Çıkış Yılı": kitap.get("Çıkış Yılı", ""),
                     "Anlatı Yılı": kitap.get("Anlatı Yılı", ""),
-                    "Konusu": kitap.get("Konusu", "")
+                    "Konusu": kitap.get("Konusu", ""),
                 }
                 
-                eksik_alanlar = [k for k, v in bilgiler.items() if not v or not v.strip()]
-                
-                # Önce Groq AI ile dene
-                if eksik_alanlar:
-                    try:
-                        groq_bilgi = self.bilgi_cekici._groq_ai_cek(kitap_adi, yazar, eksik_alanlar, bilgiler)
-                        if groq_bilgi:
-                            for alan in eksik_alanlar:
-                                if alan in groq_bilgi and groq_bilgi[alan]:
-                                    bilgiler[alan] = groq_bilgi[alan]
-                    except Exception as e:
-                        print(f"Groq AI hatası ({kitap_adi}): {e}")
-                
-                # ⚠️ ÖNEMLİ: Groq'dan sonra hala eksik bilgiler varsa Hugging Face AI ile tamamla
-                eksik_alanlar = [k for k, v in bilgiler.items() if not v or not v.strip()]
-                if eksik_alanlar:
-                    try:
-                        huggingface_bilgi = self.bilgi_cekici._huggingface_ai_cek(kitap_adi, yazar, eksik_alanlar, bilgiler)
-                        if huggingface_bilgi:
-                            for alan in eksik_alanlar:
-                                if alan in huggingface_bilgi and huggingface_bilgi[alan]:
-                                    bilgiler[alan] = huggingface_bilgi[alan]
-                                    print(f"✅ Hugging Face AI ile '{alan}' bulundu ({kitap_adi}): {huggingface_bilgi[alan][:50]}...")
-                    except Exception as e:
-                        print(f"Hugging Face AI hatası ({kitap_adi}): {e}")
+                try:
+                    # Policy modu ile bilgi çek (status ve provenance dahil)
+                    guncellenen_kitap = self.bilgi_cekici.kitap_bilgisi_cek_policy(kitap_adi, yazar, mevcut_kitap)
+                    
+                    # Sadece form alanlarını çıkar (meta kolonları zaten güncellenmiş)
+                    bilgiler = {
+                        "Orijinal Adı": guncellenen_kitap.get("Orijinal Adı", ""),
+                        "Tür": guncellenen_kitap.get("Tür", ""),
+                        "Ülke/Edebi Gelenek": guncellenen_kitap.get("Ülke/Edebi Gelenek", ""),
+                        "Çıkış Yılı": guncellenen_kitap.get("Çıkış Yılı", ""),
+                        "Anlatı Yılı": guncellenen_kitap.get("Anlatı Yılı", ""),
+                        "Konusu": guncellenen_kitap.get("Konusu", ""),
+                    }
+                    
+                    print(f"Policy modu sonuçları ({kitap_adi}): status={guncellenen_kitap.get('status', 'UNKNOWN')}")
+                except Exception as e:
+                    print(f"Policy modu hatası ({kitap_adi}): {e}")
+                    import traceback
+                    traceback.print_exc()
+                    # Hata durumunda mevcut kitabı koru ve status yaz
+                    from field_registry import ensure_row_schema
+                    from provenance import set_row_status
+                    guncellenen_kitap = ensure_row_schema(kitap.copy())
+                    # Hata durumunda FAIL status yaz
+                    set_row_status(
+                        guncellenen_kitap,
+                        status="FAIL",
+                        missing_fields=["Orijinal Adı", "Tür", "Ülke/Edebi Gelenek", "Çıkış Yılı", "Anlatı Yılı", "Konusu"],
+                        best_source="error",
+                        retry_count=1,
+                        next_retry_hours=6
+                    )
+                    bilgiler = {
+                        "Orijinal Adı": kitap.get("Orijinal Adı", ""),
+                        "Tür": kitap.get("Tür", ""),
+                        "Ülke/Edebi Gelenek": kitap.get("Ülke/Edebi Gelenek", ""),
+                        "Çıkış Yılı": kitap.get("Çıkış Yılı", ""),
+                        "Anlatı Yılı": kitap.get("Anlatı Yılı", ""),
+                        "Konusu": kitap.get("Konusu", ""),
+                    }
                 
                 # ⚠️ ANİMASYON: Formu doldur (hızlı animasyon)
                 self.root.after(0, lambda bilg=bilgiler: self._animasyon_form_doldur(bilg))
                 time.sleep(0.3)  # Animasyon için kısa bekleme (kullanıcı görebilsin)
                 
-                # Kitabı güncelle
-                guncellenen_kitap = kitap.copy()
-                guncellenen_kitap.update(bilgiler)
+                # Listede bul ve güncelle (status ve provenance dahil)
+                # ensure_row_schema ile tüm kolonların olduğundan emin ol
+                from field_registry import ensure_row_schema
+                guncellenen_kitap = ensure_row_schema(guncellenen_kitap)
                 
-                # Listede bul ve güncelle
                 kitap_listesi = self.list_manager.tumunu_getir()
                 for idx, listedeki_kitap in enumerate(kitap_listesi):
                     if (listedeki_kitap.get('Kitap Adı', '').strip() == kitap_adi and 
                         listedeki_kitap.get('Yazar', '').strip() == yazar):
-                        # Kitabı güncelle
-                        self.list_manager.kitap_listesi[idx] = guncellenen_kitap
+                        # Kitabı güncelle (status ve provenance dahil)
+                        # Mevcut kitabın diğer kolonlarını koru (Not, vb.)
+                        mevcut_kitap = ensure_row_schema(listedeki_kitap.copy())
+                        mevcut_kitap.update(guncellenen_kitap)
+                        self.list_manager.kitap_listesi[idx] = mevcut_kitap
                         basarili += 1
                         break
                 else:
                     basarisiz += 1
+                
+                # Checkpoint: Her 50 kitapta bir Excel'e kaydet
+                if (i + 1) % 50 == 0:
+                    try:
+                        self.excel_handler.kaydet(self.list_manager.tumunu_getir())
+                        print(f"Checkpoint: {i + 1}/{toplam} kitap Excel'e kaydedildi")
+                    except Exception as e:
+                        print(f"Checkpoint kaydetme hatası: {e}")
                 
                 # ⚠️ ANİMASYON: Formu temizle (sonraki kitap için hazırla)
                 self.root.after(0, self._animasyon_form_temizle)
@@ -869,6 +905,13 @@ class KitapListesiGUI:
             
             # Son form temizleme
             self.root.after(0, self._animasyon_form_temizle)
+            
+            # Final checkpoint: Tüm kitapları Excel'e kaydet (status ve provenance dahil)
+            try:
+                self.excel_handler.kaydet(self.list_manager.tumunu_getir())
+                print(f"Final checkpoint: Tüm kitaplar Excel'e kaydedildi")
+            except Exception as e:
+                print(f"Final checkpoint kaydetme hatası: {e}")
             
             # Listeyi güncelle
             self.root.after(0, self.listeyi_guncelle)
