@@ -151,7 +151,38 @@ Bu dosyalar root'ta kalmalıdır çünkü:
 2. **Standart yapı**: Python/Git projelerinde bu dosyalar root'ta olur
 3. **Tool uyumluluğu**: `pip`, `git` gibi araçlar bu dosyaları root'ta arar
 
-### 📝 Son Oturumda Yapılanlar (2026-02-10 - Regression Test)
+**⚠️ ÖNEMLİ - Commit Mesajları ve Türkçe Karakterler:**
+- **Commit mesajlarında Türkçe karakterler kullanmayın!** (ç, ğ, ı, ö, ş, ü, İ, Ç, Ğ, Ö, Ş, Ü)
+- Türkçe karakterler yerine İngilizce karakterler kullanın:
+  - ç → c, Ç → C
+  - ğ → g, Ğ → G
+  - ı → i, İ → I
+  - ö → o, Ö → O
+  - ş → s, Ş → S
+  - ü → u, Ü → U
+- Bu sayede GitHub'da commit mesajları düzgün görünür ve encoding sorunları önlenir
+- Örnek: "Klasör organizasyonu" yerine "Klasor organizasyonu" kullanın
+
+### 📝 Son Oturumda Yapılanlar (2026-02-10 - GitHub Güncelleme ve Commit Mesaj Düzeltme)
+
+1. **GitHub Güncelleme** (2026-02-10):
+   - Klasör organizasyonu değişiklikleri GitHub'a push edildi
+   - Tüm dosyalar klasörlere taşındı (modules/, scripts/, data/, icons/, docs/)
+   - Commit mesajları ASCII karakterlerle düzeltildi (Türkçe karakterler İngilizce karakterlerle değiştirildi)
+   - **Not**: Eski commit'lerde bazı Türkçe karakterler bozuk görünebilir, ancak yeni commit'ler ASCII kullanıyor
+
+2. **Commit Mesaj Düzeltme Stratejisi** (2026-02-10):
+   - Türkçe karakterler İngilizce karakterlerle değiştirildi:
+     - ç → c, Ç → C
+     - ğ → g, Ğ → G
+     - ı → i, İ → I
+     - ö → o, Ö → O
+     - ş → s, Ş → S
+     - ü → u, Ü → U
+   - Bu sayede encoding sorunları önlendi
+   - GitHub'da commit mesajları düzgün görünüyor
+
+### 📝 Önceki Oturumda Yapılanlar (2026-02-10 - Regression Test)
 
 1. **Regression Test Eklendi** (2026-02-10):
    - `test_regression.py` modülü oluşturuldu

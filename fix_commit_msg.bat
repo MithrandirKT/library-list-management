@@ -1,0 +1,2 @@
+@echo off
+python -c "import sys; msg=sys.stdin.read(); msg=msg.replace('Ä°','I').replace('Ã¶','o').replace('Ã¼','u').replace('Ã§','c').replace('Ä±','i').replace('ÅŸ','s').replace('ÄŸ','g').replace('Ã–','O').replace('Ãœ','U').replace('Ã‡','C').replace('Åž','S').replace('Äž','G').replace('YÃ¶netim','Yonetim').replace('ProgramÄ±','Programi').replace('ç','c').replace('Ç','C').replace('ğ','g').replace('Ğ','G').replace('ı','i').replace('İ','I').replace('ö','o').replace('Ö','O').replace('ş','s').replace('Ş','S').replace('ü','u').replace('Ü','U'); sys.stdout.write(msg)"
