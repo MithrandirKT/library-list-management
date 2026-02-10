@@ -1,6 +1,6 @@
 """
-GUI Widget'ları Modülü
-GUI widget'larının oluşturulması ve yönetimi
+GUI Widget'lari Modulu
+GUI widget'larinin olusturulmasi ve yonetimi
 """
 
 import tkinter as tk
@@ -9,7 +9,7 @@ from typing import Dict, Callable, Optional
 
 
 class GUIWidgets:
-    """GUI widget'ları için sınıf"""
+    """GUI widget'lari icin sinif"""
     
     def __init__(self, root: tk.Tk):
         """
@@ -26,7 +26,7 @@ class GUIWidgets:
     
     def olustur(self, callbacks: Dict[str, Callable]):
         """
-        Tüm GUI widget'larını oluşturur
+        Tum GUI widget'larini olusturur
         
         Args:
             callbacks: Callback fonksiyonları dict'i

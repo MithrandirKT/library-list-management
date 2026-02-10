@@ -1,6 +1,6 @@
 """
-Form İşlemleri Modülü
-Form doğrulama, temizleme ve doldurma işlemleri
+Form Islemleri Modulu
+Form dogrulama, temizleme ve doldurma islemleri
 """
 
 import tkinter as tk
@@ -9,7 +9,7 @@ from typing import Dict, Optional
 
 
 class FormHandler:
-    """Form işlemleri için sınıf"""
+    """Form islemleri icin sinif"""
     
     def __init__(self, form_widgets: Dict[str, tk.Widget]):
         """
@@ -110,10 +110,10 @@ class FormHandler:
         
         # Zorunlu alan kontrolü
         if not degerler.get('kitap_adi'):
-            return False, "Kitap Adı zorunludur! Lütfen kitap adını girin."
+            return False, "Kitap Adi zorunludur! Lutfen kitap adini girin."
         
         if not degerler.get('yazar'):
-            return False, "Yazar zorunludur! Lütfen yazar adını girin."
+            return False, "Yazar zorunludur! Lutfen yazar adini girin."
         
         # Çıkış yılı kontrolü
         cikis_yili = degerler.get('cikis_yili', '')

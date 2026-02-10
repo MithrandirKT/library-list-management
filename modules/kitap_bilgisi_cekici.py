@@ -1,6 +1,6 @@
 """
-Kitap Bilgisi Çekici Modülü
-Wikipedia, Google Books, Open Library ve Groq AI API'lerini kullanarak kitap bilgilerini çeker
+Kitap Bilgisi Cekici Modulu
+Wikipedia, Google Books, Open Library ve Groq AI API'lerini kullanarak kitap bilgilerini ceker
 """
 
 import requests
@@ -23,23 +23,23 @@ class KitapBilgisiCekici:
         self.google_books_url = "https://www.googleapis.com/books/v1/volumes"
         self.open_library_url = "https://openlibrary.org/search.json"
         self.groq_api_url = "https://api.groq.com/openai/v1/chat/completions"
-        # Groq API key - kullanıcıdan alınacak veya environment variable'dan
+        # Groq API key - kullanicidan alinacak veya environment variable'dan
         self.groq_api_key = os.getenv('GROQ_API_KEY', '')
-        # Hugging Face Inference API (ücretsiz, API key gerektirmez ama rate limit var)
+        # Hugging Face Inference API (ucretsiz, API key gerektirmez ama rate limit var)
         # ⚠️ NOT: router.huggingface.co 404 veriyor, eski api-inference.huggingface.co'yu tekrar deniyoruz
         self.huggingface_api_url = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
-        # Together AI API (ücretsiz tier var, alternatif yedek API)
+        # Together AI API (ucretsiz tier var, alternatif yedek API)
         self.together_api_url = "https://api.together.xyz/v1/chat/completions"
         self.together_api_key = os.getenv('TOGETHER_API_KEY', '')
-        # Hugging Face API key - önce dosyadan, sonra environment variable'dan dene
+        # Hugging Face API key - once dosyadan, sonra environment variable'dan dene
         self.huggingface_api_key = self._huggingface_key_yukle()
         # Router state for AI providers
         self.router = QuotaRouter()
         self._last_status_code: Optional[int] = None
     
     def _huggingface_key_yukle(self) -> str:
-        """Hugging Face API key'i yükler (önce dosyadan, sonra environment variable'dan)"""
-        # Önce dosyadan dene
+        """Hugging Face API key'i yukler (once dosyadan, sonra environment variable'dan)"""
+        # Once dosyadan dene
         try:
             # data/ klasöründen yükle
             base_dir = os.path.dirname(os.path.dirname(__file__))
@@ -52,7 +52,7 @@ class KitapBilgisiCekici:
         except Exception:
             pass
         
-        # Dosyadan yüklenemediyse environment variable'dan dene
+        # Dosyadan yuklenemediyse environment variable'dan dene
         env_key = os.getenv('HUGGINGFACE_API_KEY', '')
         if env_key:
             return env_key
@@ -61,14 +61,14 @@ class KitapBilgisiCekici:
         
     def kitap_bilgisi_cek(self, kitap_adi: str, yazar: str) -> Dict[str, str]:
         """
-        Çoklu kaynaktan kitap bilgilerini çeker
+        Coklu kaynaktan kitap bilgilerini ceker
         
         Args:
-            kitap_adi: Kitap adı (Türkçe)
-            yazar: Yazar adı
+            kitap_adi: Kitap adi (Turkce)
+            yazar: Yazar adi
             
         Returns:
-            Dict: Kitap bilgileri (Orijinal Adı, Tür, Ülke/Edebi Gelenek, Çıkış Yılı, Konusu)
+            Dict: Kitap bilgileri (Orijinal Adi, Tur, Ulke/Edebi Gelenek, Cikis Yili, Konusu)
         """
         sonuc = {
             "Orijinal Adı": "",
@@ -79,7 +79,7 @@ class KitapBilgisiCekici:
             "Konusu": ""
         }
         
-        # Önce Wikipedia'dan dene
+        # Once Wikipedia'dan dene
         wikipedia_bilgi = self._wikipedia_cek(kitap_adi, yazar)
         if wikipedia_bilgi:
             sonuc.update(wikipedia_bilgi)
@@ -131,12 +131,12 @@ class KitapBilgisiCekici:
         return sonuc
     
     def _wikipedia_cek(self, kitap_adi: str, yazar: str) -> Optional[Dict[str, str]]:
-        """Wikipedia'dan kitap bilgilerini çeker - Önce İngilizce'de ara (orijinal bilgiler için)"""
+        """Wikipedia'dan kitap bilgilerini ceker - Once Ingilizce'de ara (orijinal bilgiler icin)"""
         try:
             from urllib.parse import quote
             
-            # Önce İngilizce Wikipedia'da ara (orijinal dildeki bilgiler için)
-            # Yazar adı ile birlikte ara
+            # Once Ingilizce Wikipedia'da ara (orijinal dildeki bilgiler icin)
+            # Yazar adi ile birlikte ara
             arama_terimleri = [
                 f"{kitap_adi} ({yazar})",  # Kitap adı (Yazar)
                 kitap_adi,  # Sadece kitap adı
@@ -148,12 +148,12 @@ class KitapBilgisiCekici:
                 response = requests.get(arama_url_en, timeout=5)
                 if response.status_code == 200:
                     data = response.json()
-                    # Yazar adının da eşleştiğini kontrol et
+                    # Yazar adinin da eslestigini kontrol et
                     extract = data.get('extract', '').lower()
                     if yazar.lower() in extract or arama_terimi == kitap_adi:
                         return self._wikipedia_parse(data, kitap_adi, yazar, lang='en')
             
-            # İngilizce'de bulunamazsa Türkçe'de dene
+            # Ingilizce'de bulunamazsa Turkce'de dene
             arama_url_tr = f"https://tr.wikipedia.org/api/rest_v1/page/summary/{quote(kitap_adi)}"
             response = requests.get(arama_url_tr, timeout=5)
             if response.status_code == 200:
@@ -167,15 +167,15 @@ class KitapBilgisiCekici:
         return None
     
     def _wikipedia_parse(self, data: dict, kitap_adi: str, yazar: str, lang: str = 'en') -> Dict[str, str]:
-        """Wikipedia verisini parse eder - İyileştirilmiş versiyon"""
+        """Wikipedia verisini parse eder - Iyilestirilmis versiyon"""
         sonuc = {}
         extract = data.get('extract', '')
         title = data.get('title', '')
         
-        # Orijinal adı: İngilizce sayfadaysa title'ı kullan (orijinal dildeki adı)
-        # Türkçe sayfadaysa "Orijinal adı:" veya parantez içindeki adı bul
+        # Orijinal adi: Ingilizce sayfadaysa title'i kullan (orijinal dildeki adi)
+        # Turkce sayfadaysa "Orijinal adi:" veya parantez icindeki adi bul
         if lang == 'en':
-            # İngilizce sayfada title genellikle orijinal adıdır
+            # Ingilizce sayfada title genellikle orijinal adidir
             if title and title.lower() != kitap_adi.lower():
                 sonuc["Orijinal Adı"] = title
             else:
@@ -186,11 +186,11 @@ class KitapBilgisiCekici:
                     parantez_match = re.search(r'\(([^)]+)\)', extract)
                     if parantez_match:
                         parantez_icerik = parantez_match.group(1)
-                        # Türkçe karakterler içermiyorsa orijinal adı olabilir
+                        # Turkce karakterler icermiyorsa orijinal adi olabilir
                         if not any(c in parantez_icerik for c in 'çğıöşüÇĞIİÖŞÜ'):
                             sonuc["Orijinal Adı"] = parantez_icerik.strip()
         else:
-            # Türkçe sayfada "Orijinal adı:" veya parantez içindeki adı bul
+            # Turkce sayfada "Orijinal adi:" veya parantez icindeki adi bul
             orijinal_match = re.search(r'(?:Orijinal adı|Original title|Original name)[:\s]+([^(\n]+)', extract, re.IGNORECASE)
             if not orijinal_match:
                 orijinal_match = re.search(r'\(([^)]+)\)', extract)
@@ -204,8 +204,8 @@ class KitapBilgisiCekici:
             if konu and len(konu) > 20:  # En az 20 karakter olsun
                 sonuc["Konusu"] = konu + '.' if not konu.endswith('.') else konu
         
-        # Çıkış yılı: "published", "written", "first published" gibi kelimelerden sonraki yılı bul
-        # Basım yılı değil, yazıldığı/yayınlandığı ilk yıl
+        # Cikis yili: "published", "written", "first published" gibi kelimelerden sonraki yili bul
+        # Basim yili degil, yazildigi/yayinlandigi ilk yil
         if extract:
             # "first published in", "written in", "published in" gibi ifadeleri ara
             yil_patterns = [

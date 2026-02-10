@@ -1,6 +1,6 @@
 """
-Liste Yönetimi Modülü
-Kitap listesi CRUD işlemleri
+Liste Yonetimi Modulu
+Kitap listesi CRUD islemleri
 """
 
 from typing import List, Dict, Optional
@@ -10,12 +10,12 @@ from field_registry import ensure_row_schema
 
 
 class ListManager:
-    """Kitap listesi yönetimi için sınıf"""
+    """Kitap listesi yonetimi icin sinif"""
     
     def __init__(self, kitap_listesi: List[Dict] = None):
         """
         Args:
-            kitap_listesi: Başlangıç kitap listesi
+            kitap_listesi: Baslangic kitap listesi
         """
         self.kitap_listesi = kitap_listesi or []
     
@@ -25,21 +25,21 @@ class ListManager:
         
         Args:
             kitap: Eklenecek kitap dict'i
-            tekrar_kontrol: Aynı kitap kontrolü yapılsın mı
+            tekrar_kontrol: Ayni kitap kontrolu yapilsin mi
             
         Returns:
-            (Başarılı mı, Hata mesajı)
+            (Basarili mi, Hata mesaji)
         """
         kitap_adi = kitap.get("Kitap Adı", "").strip()
         
         if not kitap_adi:
-            return False, "Kitap Adı boş olamaz!"
+            return False, "Kitap Adi bos olamaz!"
         
         # Tekrar kontrolü
         if tekrar_kontrol:
             mevcut_isimler = [k.get("Kitap Adı", "").lower() for k in self.kitap_listesi]
             if kitap_adi.lower() in mevcut_isimler:
-                return False, f"'{kitap_adi}' adlı kitap zaten listede var!"
+                return False, f"'{kitap_adi}' adli kitap zaten listede var!"
         
         self.kitap_listesi.append(ensure_row_schema(kitap))
         return True, None
@@ -49,10 +49,10 @@ class ListManager:
         Kitap siler
         
         Args:
-            index: Silinecek kitabın indeksi
+            index: Silinecek kitabin indeksi
             
         Returns:
-            (Başarılı mı, Silinen kitap)
+            (Basarili mi, Silinen kitap)
         """
         if 0 <= index < len(self.kitap_listesi):
             silinen = self.kitap_listesi.pop(index)
@@ -64,7 +64,7 @@ class ListManager:
         Kitap getirir
         
         Args:
-            index: Kitabın indeksi
+            index: Kitabin indeksi
             
         Returns:
             Kitap dict'i veya None
@@ -75,7 +75,7 @@ class ListManager:
     
     def tumunu_getir(self) -> List[Dict]:
         """
-        Tüm kitap listesini getirir
+        Tum kitap listesini getirir
         
         Returns:
             Kitap listesi
@@ -84,10 +84,10 @@ class ListManager:
     
     def sayi(self) -> int:
         """
-        Kitap sayısını döndürür
+        Kitap sayisini dondurur
         
         Returns:
-            Kitap sayısı
+            Kitap sayisi
         """
         return len(self.kitap_listesi)
     
@@ -101,7 +101,7 @@ class ListManager:
         
         Args:
             kitaplar: Eklenecek kitap listesi
-            tekrar_kontrol: Tekrar kontrolü yapılsın mı
+            tekrar_kontrol: Tekrar kontrolu yapilsin mi
             
         Returns:
             {

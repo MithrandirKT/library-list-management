@@ -4,7 +4,7 @@ huggingface_api_key.txt
 *.key
 *.token
 
-# Excel dosyaları (Kullanıcı verileri)
+# Excel dosyalari (Kullanici verileri)
 *.xlsx
 *.xls
 Kutuphanem.xlsx
@@ -33,16 +33,16 @@ ENV/
 Thumbs.db
 desktop.ini
 
-# İkon dosyaları (isteğe bağlı - eğer eklemek isterseniz kaldırabilirsiniz)
+# Ikon dosyalari (istege bagli - eger eklemek isterseniz kaldirabilirsiniz)
 # kitap_ikon.ico
 # kitap_ikon.png
 
-# Geçici dosyalar
+# Gecici dosyalar
 *.tmp
 *.log
 *.bak
 
-# EXE dosyaları (eğer oluşturulduysa)
+# EXE dosyalari (eger olusturulduysa)
 *.exe
 dist/
 build/
