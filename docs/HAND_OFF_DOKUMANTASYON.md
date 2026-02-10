@@ -1,6 +1,6 @@
 # Kitap Listesi Excel Oluşturucu - Hand-off Dokümantasyonu
 
-## 📊 Güncel Durum ve İlerleme (Son Güncelleme: 2026-02-10)
+## 📊 Güncel Durum ve İlerleme (Son Güncelleme: 2026-02-10 - Türkçe Karakter Düzeltmeleri)
 
 ### 🎯 Başlangıç Amacı
 Bu çalışma, kitap bilgisini çoklu kaynaktan doğru bağlamda çekmek, Excel'e meta/provenance yazmak ve kota/yanıt hatalarını kontrollü yönetmek için **"field policy + quality gates + wikidata + router + status/checkpoint"** altyapısını kurma amacıyla başladı.
@@ -174,15 +174,44 @@ Bu dosyalar root'ta kalmalıdır çünkü:
   - "Güncelleme" → "Guncelleme"
 - **Not**: Eğer bir yerde Türkçe karakter kullanmak zorundaysanız ve encoding problemi yaşıyorsanız, mutlaka İngilizce karaktere çevirin
 
-### 📝 Son Oturumda Yapılanlar (2026-02-10 - GitHub Güncelleme ve Commit Mesaj Düzeltme)
+### 📝 Son Oturumda Yapılanlar (2026-02-10 - Türkçe Karakter Düzeltmeleri ve GitHub Otomasyonu)
 
-1. **GitHub Güncelleme** (2026-02-10):
+1. **Türkçe Karakterlerin Tüm Dosyalarda Düzeltilmesi** (2026-02-10):
+   - Tüm kod dosyalarında Türkçe karakterler İngilizce karakterlere çevrildi
+   - **Düzeltilen dosyalar:**
+     - `kitap_listesi_gui.py`: Kullanıcı mesajları, yorumlar, string'ler
+     - `modules/list_manager.py`: Yorumlar, hata mesajları
+     - `modules/kitap_bilgisi_cekici.py`: Yorumlar, docstring'ler
+     - `modules/gui_widgets.py`: Yorumlar
+     - `modules/form_handler.py`: Hata mesajları, yorumlar
+     - `modules/excel_handler.py`: Yorumlar
+     - `modules/api_key_manager.py`: Yorumlar, print mesajları
+     - `.gitignore`: Yorumlar
+   - **Sonuç**: GitHub'da encoding sorunları önlendi, tüm commit mesajları ve kod düzgün görünüyor
+
+2. **GitHub Otomatik Push Script'i Eklendi** (2026-02-10):
+   - `scripts/GITHUB_AUTO_PUSH.bat` dosyası oluşturuldu
+   - **Özellikler:**
+     - 10 saniye bekleme süresi (iptal için pencere kapatılabilir)
+     - Tüm değişiklikleri otomatik ekler (`git add -A`)
+     - Otomatik commit (tarih/saat ile mesaj)
+     - Otomatik push
+     - Hata kontrolü ve bilgilendirme
+   - **Kullanım**: `scripts/GITHUB_AUTO_PUSH.bat` dosyasına çift tıklayarak tüm değişiklikler otomatik GitHub'a push edilir
+   - **Güvenlik**: Force push yapmıyor, sadece normal push yapıyor
+
+3. **Git User Name Ayarları** (2026-02-10):
+   - Git `user.name` ayarı `MithrandirKT` olarak değiştirildi
+   - Bundan sonraki tüm commit'ler GitHub'da `MithrandirKT` olarak görünecek
+   - **Komut**: `git config user.name "MithrandirKT"`
+
+4. **GitHub Güncelleme** (2026-02-10):
    - Klasör organizasyonu değişiklikleri GitHub'a push edildi
    - Tüm dosyalar klasörlere taşındı (modules/, scripts/, data/, icons/, docs/)
    - Commit mesajları ASCII karakterlerle düzeltildi (Türkçe karakterler İngilizce karakterlerle değiştirildi)
    - **Not**: Eski commit'lerde bazı Türkçe karakterler bozuk görünebilir, ancak yeni commit'ler ASCII kullanıyor
 
-2. **Commit Mesaj Düzeltme Stratejisi** (2026-02-10):
+5. **Commit Mesaj Düzeltme Stratejisi** (2026-02-10):
    - Türkçe karakterler İngilizce karakterlerle değiştirildi:
      - ç → c, Ç → C
      - ğ → g, Ğ → G
@@ -810,6 +839,7 @@ KÜTÜPHANE/
 ├── scripts/                      # Yardımcı scriptler (YENİ KLASÖR)
 │   ├── PROGRAMI_AC.vbs          # Programı başlatma scripti (VBScript - konsol penceresi gizli) ⭐ ÖNERİLEN
 │   ├── PROGRAMI_AC.bat          # Programı başlatma scripti (alternatif)
+│   ├── GITHUB_AUTO_PUSH.bat     # GitHub otomatik push scripti (YENİ - 2026) ⭐
 │   ├── ikon_olustur.py          # Kitap temalı ikon oluşturucu (YENİ - 2024)
 │   ├── ikon_ve_shortcut_olustur.bat # İkon ve shortcut oluşturma scripti (YENİ - 2024)
 │   ├── ikon_cache_temizle.bat   # Windows ikon cache temizleme (YENİ - 2024)
@@ -1603,6 +1633,15 @@ python kitap_listesi_gui.py
 PROGRAMI_AC.vbs  # Çift tıkla (önerilen - konsol penceresi görünmez) ⭐
 # veya
 PROGRAMI_AC.bat  # Çift tıkla (alternatif - konsol penceresi görünür)
+```
+
+### GitHub Otomatik Push (YENİ - 2026)
+```bash
+scripts/GITHUB_AUTO_PUSH.bat  # Çift tıkla
+# - 10 saniye bekleme süresi (iptal için pencere kapatılabilir)
+# - Tüm değişiklikleri otomatik GitHub'a push eder
+# - Otomatik commit (tarih/saat ile mesaj)
+# - Güvenli: Force push yapmıyor, sadece normal push
 ```
 
 ### Kitap Temalı İkon ve Shortcut Oluşturma (İsteğe Bağlı)
